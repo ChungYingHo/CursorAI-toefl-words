@@ -13,9 +13,30 @@ export interface DayVocabulary {
   words: Word[]
 }
 
+// 新的文章資料結構
+export interface Article {
+  date: string
+  title: string
+  link: string | null
+  content: string
+}
+
+// 新的每日資料結構（包含文章和單字）
+export interface DayContent {
+  date: string
+  article: Article | null
+  words: Word[]
+}
+
 export interface VocabularyData {
   toefl: DayVocabulary[]
   daily: DayVocabulary[]
+}
+
+// 新的資料結構
+export interface ContentData {
+  toefl: DayContent[]
+  daily: DayContent[]
 }
 
 // 測驗相關型別

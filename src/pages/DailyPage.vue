@@ -89,7 +89,7 @@
                 {{ word.definition }}
               </div>
 
-              <div v-if="word.example" class="text-body2 text-dark-text-secondary mt-auto">
+              <div v-if="word.example" class="text-body1 text-dark-text-secondary mt-auto">
                 {{ word.example }}
               </div>
             </q-card-section>
@@ -116,11 +116,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { Word, DayVocabulary } from '../types/vocabulary'
+import type { Word, DayContent } from '../types/vocabulary'
 
 const loading = ref(true)
 const error = ref('')
-const dailyData = ref<DayVocabulary[]>([])
+const dailyData = ref<DayContent[]>([])
 const currentPage = ref(1)
 const itemsPerPage = ref(30)
 

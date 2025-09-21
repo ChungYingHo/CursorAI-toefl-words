@@ -2,7 +2,7 @@
   "name": "toefl-words",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "VocabQuest",
+  "productName": "English Forge",
   "author": "Jeremy <ag.cyho@gmail.com>",
   "type": "module",
   "private": true,

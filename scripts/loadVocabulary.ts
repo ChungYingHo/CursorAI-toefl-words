@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'fs'
 import { join, basename } from 'path'
-import type { DayVocabulary, Word } from '../src/types/vocabulary'
+import type { DayVocabulary, Word, DayContent, Article } from '../src/types/vocabulary'
 
 // 解析 markdown 表格行
 function parseMarkdownTableRow(line: string): Word | null {
@@ -14,12 +14,12 @@ function parseMarkdownTableRow(line: string): Word | null {
 
   const [word, partOfSpeech, definition, example] = columns
 
-  // 檢查是否為表格標題行
-  if (!word || word.includes('---') || word === '單字') {
+  // 檢查是否為表格標題行或分隔行
+  if (!word || word.includes('---') || word === '單字' || word === '詞性' || word === '中文' || word === '例句') {
     return null
   }
 
-  if (!word) {
+  if (!word || word.length === 0) {
     return null
   }
 
@@ -32,37 +32,102 @@ function parseMarkdownTableRow(line: string): Word | null {
   }
 }
 
-// 解析單個 markdown 檔案
-function parseMarkdownFile(filePath: string): DayVocabulary | null {
+// 解析 frontmatter
+function parseFrontmatter(content: string): { frontmatter: any, content: string } | null {
+  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
+  const match = content.match(frontmatterRegex)
+
+  if (!match) {
+    return null
+  }
+
+  const frontmatterText = match[1]
+  const contentText = match[2]
+
+  if (!frontmatterText || !contentText) {
+    return null
+  }
+
+  // 解析 YAML frontmatter
+  const frontmatter: any = {}
+  frontmatterText.split('\n').forEach(line => {
+    const colonIndex = line.indexOf(':')
+    if (colonIndex > 0) {
+      const key = line.substring(0, colonIndex).trim()
+      let value: string | null = line.substring(colonIndex + 1).trim()
+
+      // 處理 null 值
+      if (value === 'null') {
+        value = null
+      }
+
+      frontmatter[key] = value
+    }
+  })
+
+  return { frontmatter, content: contentText }
+}
+
+// 解析單個 markdown 檔案（新格式）
+function parseMarkdownFile(filePath: string): DayContent | null {
   try {
     const content = readFileSync(filePath, 'utf-8')
-    const lines = content.split('\n')
+    const parsed = parseFrontmatter(content)
 
-    // 從檔名提取 day 編號（跨平台）
-    const fileName = basename(filePath)
-    const dayMatch = fileName.match(/(\d+)-day_\d+\.md/)
-    if (!dayMatch || !dayMatch[1]) {
-      console.warn(`無法從檔名 ${fileName} 提取 day 編號`)
+    if (!parsed) {
+      console.warn(`檔案 ${filePath} 沒有有效的 frontmatter`)
       return null
     }
 
-    const day = parseInt(dayMatch[1], 10)
+    const { frontmatter, content: contentText } = parsed
     const words: Word[] = []
+    let articleContent = ''
+    let inWordsSection = false
+
+    const lines = contentText.split('\n')
 
     for (const line of lines) {
-      const word = parseMarkdownTableRow(line)
-      if (word) {
-        words.push(word)
+      // 檢查是否進入單字區段
+      if (line.trim() === '## 單字' || line.trim() === '# 單字') {
+        inWordsSection = true
+        continue
+      }
+
+      // 如果遇到表格行且還沒進入單字區段，自動進入
+      if (!inWordsSection && line.trim().startsWith('|') && line.includes('單字')) {
+        inWordsSection = true
+        continue
+      }
+
+      if (inWordsSection) {
+        const word = parseMarkdownTableRow(line)
+        if (word) {
+          words.push(word)
+        }
+      } else {
+        // 收集文章內容（但排除單字表格）
+        if (!line.trim().startsWith('|')) {
+          articleContent += line + '\n'
+        }
       }
     }
 
-    // 重新編號
+    // 重新編號單字
     words.forEach((word, index) => {
       word.id = index + 1
     })
 
+    // 建立文章物件
+    const article: Article | null = frontmatter.title ? {
+      date: frontmatter.date || '',
+      title: frontmatter.title,
+      link: frontmatter.link,
+      content: articleContent.trim()
+    } : null
+
     return {
-      day,
+      date: frontmatter.date || '',
+      article,
       words
     }
   } catch (error) {
@@ -72,8 +137,8 @@ function parseMarkdownFile(filePath: string): DayVocabulary | null {
 }
 
 // 載入指定資料夾的所有 markdown 檔案
-function loadVocabularyFromFolder(folderPath: string): DayVocabulary[] {
-  const vocabulary: DayVocabulary[] = []
+function loadVocabularyFromFolder(folderPath: string): DayContent[] {
+  const vocabulary: DayContent[] = []
 
   if (!existsSync(folderPath)) {
     console.warn(`資料夾 ${folderPath} 不存在`)
@@ -85,15 +150,15 @@ function loadVocabularyFromFolder(folderPath: string): DayVocabulary[] {
 
   for (const file of markdownFiles) {
     const filePath = join(folderPath, file)
-    const dayVocabulary = parseMarkdownFile(filePath)
+    const dayContent = parseMarkdownFile(filePath)
 
-    if (dayVocabulary) {
-      vocabulary.push(dayVocabulary)
+    if (dayContent) {
+      vocabulary.push(dayContent)
     }
   }
 
-  // 按 day 編號排序
-  vocabulary.sort((a, b) => a.day - b.day)
+  // 按日期排序
+  vocabulary.sort((a, b) => a.date.localeCompare(b.date))
 
   return vocabulary
 }

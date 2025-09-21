@@ -338,19 +338,40 @@ body {
   }
 }
 
+// 首頁標題響應式樣式
+@media (max-width: 599px) {
+  .text-h5 {
+    font-size: 1rem !important;
+  }
+  
+  .text-h6 {
+    font-size: 0.9rem !important;
+  }
+}
+
+// 電腦版標題也稍微小一點
+.text-h5 {
+  font-size: 1.3rem !important;
+}
+
+.text-h6 {
+  font-size: 1.1rem !important;
+}
+
 // 測驗設定對話框樣式
 .quiz-settings-dialog {
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
   border-radius: 16px !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
   border: 1px solid rgba(37, 162, 193, 0.3) !important;
-  min-width: 320px;
-  max-width: 500px;
   width: 90vw;
+  max-width: 450px;
+  min-width: 320px;
   
   @media (min-width: 600px) {
+    width: 450px;
+    max-width: 450px;
     min-width: 450px;
-    width: auto;
   }
   
   .dialog-header {
@@ -411,17 +432,25 @@ body {
   }
   
   .quiz-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    
     .q-field__control {
       background: rgba(51, 65, 85, 0.4) !important;
       border: 1px solid rgba(99, 102, 241, 0.3) !important;
       border-radius: 8px !important;
       color: $dark-text !important;
+      width: 100% !important;
     }
     
     .q-field__native {
       color: $dark-text !important;
       font-size: 0.95rem;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     
     .q-field__marginal {

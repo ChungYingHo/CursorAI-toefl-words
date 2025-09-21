@@ -3,7 +3,7 @@
     <!-- 頁面標題 -->
     <div class="text-center q-mb-lg">
       <h1 class="text-h4 text-dark-text q-mb-sm font-weight-bold">
-        按天數瀏覽托福單字
+        每日閱讀 (托福)
       </h1>
     </div>
 
@@ -30,33 +30,49 @@
       <div class="vocab-grid">
         <div
           v-for="dayData in toeflData"
-          :key="dayData.day"
+          :key="dayData.date"
           class="vocab-card-wrapper"
         >
           <q-card
             class="vocab-card cursor-pointer h-full"
-            @click="goToDay(dayData.day)"
+            @click="goToDay(dayData.date)"
           >
-            <q-card-section class="text-center q-pa-lg">
-              <q-icon
-                name="calendar_today"
-                size="48px"
-                color="primary"
-                class="q-mb-md"
-              />
-              <div class="text-h5 text-dark-text q-mb-sm font-weight-bold">
-                Day {{ dayData.day }}
+            <q-card-section class="q-pa-lg">
+              <div class="text-center q-mb-md">
+                <q-icon
+                  name="calendar_today"
+                  size="48px"
+                  color="primary"
+                  class="q-mb-md"
+                />
               </div>
-              <div class="text-body1 text-dark-text-secondary q-mb-sm">
-                {{ dayData.words.length }} 個單字
+
+              <div class="text-center q-mb-sm">
+                <div class="text-body1 text-dark-text-secondary">
+                  {{ dayData.date }}
+                </div>
               </div>
-              <q-btn
-                color="primary"
-                label="開始學習"
-                outline
-                class="q-mt-sm"
-                rounded
-              />
+
+              <div v-if="dayData.article" class="text-center q-mb-md">
+                <div class="text-h6 text-dark-text font-weight-bold line-height-sm">
+                  {{ dayData.article.title }}
+                </div>
+              </div>
+
+              <div class="text-center q-mb-md">
+                <div class="text-body1 text-dark-text-secondary">
+                  {{ dayData.words.length }} 個單字
+                </div>
+              </div>
+
+              <div class="text-center">
+                <q-btn
+                  color="primary"
+                  label="開始學習"
+                  outline
+                  rounded
+                />
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -68,7 +84,7 @@
         <div class="text-h6 text-dark-text-secondary q-mt-md">
           暫無托福單字資料
         </div>
-        <div class="text-body2 text-dark-text-secondary q-mt-sm">
+        <div class="text-body1 text-dark-text-secondary q-mt-sm">
           請確認已正確載入單字資料
         </div>
       </div>
@@ -79,12 +95,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import type { DayVocabulary } from '../types/vocabulary'
+import type { DayContent } from '../types/vocabulary'
 
 const router = useRouter()
 const loading = ref(true)
 const error = ref('')
-const toeflData = ref<DayVocabulary[]>([])
+const toeflData = ref<DayContent[]>([])
 
 // 載入單字資料
 async function loadVocabularyData() {
@@ -104,9 +120,11 @@ async function loadVocabularyData() {
   }
 }
 
-// 前往指定天數的單字頁面
-function goToDay(day: number) {
-  void router.push(`/toefl/day/${day}`)
+// 前往指定日期的單字頁面
+function goToDay(date: string) {
+  // 將日期格式從 2025/09/21 轉換為 2025-09-21 以避免 URL 衝突
+  const encodedDate = date.replace(/\//g, '-')
+  void router.push(`/toefl/day/${encodedDate}`)
 }
 
 onMounted(() => {

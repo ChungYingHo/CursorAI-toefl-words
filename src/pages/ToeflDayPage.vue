@@ -1,11 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <!-- 頁面標題 -->
-    <div class="text-center q-mb-lg">
-      <h1 class="text-h4 text-dark-text q-mb-sm font-weight-bold">
-        托福單字 - Day {{ dayNumber }}
-      </h1>
-    </div>
+    <div class="container">
 
     <!-- 載入狀態 -->
     <div v-if="loading" class="text-center q-py-xl">
@@ -25,39 +20,116 @@
       />
     </div>
 
-    <!-- 單字列表 -->
-    <div v-else-if="dayWords.length > 0">
-      <!-- 分頁控制 -->
-      <div class="row justify-center q-mb-md q-px-md">
-        <div class="pagination-controls">
-          <div class="pagination-info">
-            <span class="text-dark-text-secondary">共 {{ dayWords.length }} 個單字</span>
-          </div>
-          <div class="pagination-selector">
-            <span class="text-dark-text-secondary">每頁顯示</span>
-            <q-select
-              v-model="itemsPerPage"
-              :options="itemsPerPageOptions"
-              option-value="value"
-              option-label="label"
-              emit-value
-              map-options
-              dense
-              outlined
-              class="items-per-page-select text-dark"
-              popup-content-class="bg-dark-card text-dark"
-              options-selected-class="text-dark"
-              options-dense
-              @update:model-value="onItemsPerPageChange"
-            />
-          </div>
-        </div>
+    <!-- 文章內容 -->
+    <div v-if="dayData?.article" class="q-mb-lg">
+      <div class="vocab-grid">
+        <q-card class="q-pa-md" style="background-color: #2d3748;">
+          <q-card-section>
+            <!-- 文章標題和日期 -->
+            <div class="text-center q-mb-lg">
+              <div class="text-h5 text-white q-mb-sm">
+                每日閱讀 (托福) - {{ date }}
+              </div>
+              <div class="text-h4 text-white q-mb-sm font-weight-bold">
+                {{ dayData.article.title }}
+              </div>
+            </div>
+
+                    <div class="q-mb-md">
+                      <div class="row q-gutter-sm">
+                        <q-btn
+                          v-if="dayData.article.link"
+                          color="primary"
+                          outline
+                          :href="dayData.article.link"
+                          target="_blank"
+                          icon="link"
+                          label="查看原文"
+                        />
+                        <q-btn
+                          color="orange"
+                          outline
+                          :href="getGitHubEditUrl()"
+                          target="_blank"
+                          icon="edit"
+                          label="Edit on GitHub"
+                        />
+                        <q-btn
+                          v-if="!isPlaying && !isPaused"
+                          color="teal"
+                          outline
+                          icon="play_arrow"
+                          label="全文朗誦"
+                          @click="playArticleContent"
+                        >
+                          <q-tooltip class="bg-dark-card text-dark-text">
+                            開始朗誦文章
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          v-if="!isPlaying && isPaused"
+                          color="teal"
+                          outline
+                          icon="play_arrow"
+                          label="繼續朗誦"
+                          @click="playArticleContent"
+                        >
+                          <q-tooltip class="bg-dark-card text-dark-text">
+                            繼續朗誦文章
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          v-if="!isPlaying && isPaused"
+                          color="blue"
+                          outline
+                          icon="replay"
+                          label="重頭朗誦"
+                          @click="restartArticleContent"
+                        >
+                          <q-tooltip class="bg-dark-card text-dark-text">
+                            從頭開始朗誦
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          v-if="isPlaying"
+                          color="amber"
+                          outline
+                          icon="pause"
+                          label="暫停朗誦"
+                          @click="pauseArticleContent"
+                        >
+                          <q-tooltip class="bg-dark-card text-dark-text">
+                            暫停朗誦
+                          </q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          v-if="isPlaying"
+                          color="red"
+                          outline
+                          icon="stop"
+                          label="停止"
+                          @click="stopArticleContent"
+                        >
+                          <q-tooltip class="bg-dark-card text-dark-text">
+                            停止朗誦
+                          </q-tooltip>
+                        </q-btn>
+                      </div>
+                    </div>
+            <div class="text-body1 text-white" v-html="formatArticleContent(dayData.article.content)">
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
+    </div>
+
+    <!-- 單字列表 -->
+    <div v-if="dayWords.length > 0" class="q-mt-lg">
 
       <!-- 單字卡片網格 -->
       <div class="vocab-grid">
         <div
-          v-for="word in paginatedWords"
+          v-for="word in dayWords"
           :key="word.id"
           class="vocab-card-wrapper"
         >
@@ -89,7 +161,7 @@
                 {{ word.definition }}
               </div>
 
-              <div v-if="word.example" class="text-body2 text-dark-text-secondary mt-auto">
+              <div v-if="word.example" class="text-body1 text-dark-text-secondary mt-auto">
                 {{ word.example }}
               </div>
             </q-card-section>
@@ -97,29 +169,16 @@
         </div>
       </div>
 
-      <!-- 分頁器 -->
-      <div class="row justify-center q-mt-lg">
-        <q-pagination
-          v-model="currentPage"
-          :max="totalPages"
-          :max-pages="5"
-          direction-links
-          boundary-links
-          color="primary"
-          text-color="white"
-          @update:model-value="onPageChange"
-        />
-      </div>
     </div>
 
     <!-- 空狀態 -->
     <div v-else class="text-center q-py-xl">
       <q-icon name="book" size="80px" color="grey-6" />
       <div class="text-h6 text-dark-text-secondary q-mt-md">
-        找不到第 {{ dayNumber }} 天的單字資料
+        找不到 {{ date }} 的單字資料
       </div>
-      <div class="text-body2 text-dark-text-secondary q-mt-sm">
-        請確認天數是否正確
+      <div class="text-body1 text-dark-text-secondary q-mt-sm">
+        請確認日期是否正確
       </div>
       <q-btn
         color="primary"
@@ -128,52 +187,37 @@
         class="q-mt-md"
       />
     </div>
+    </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import type { DayVocabulary } from '../types/vocabulary'
+import type { DayContent } from '../types/vocabulary'
 
 const route = useRoute()
 const loading = ref(true)
 const error = ref('')
-const toeflData = ref<DayVocabulary[]>([])
-const currentPage = ref(1)
-const itemsPerPage = ref(30)
+const toeflData = ref<DayContent[]>([])
+const isPlaying = ref(false)
+const isPaused = ref(false)
 
-const itemsPerPageOptions = [
-  { label: '30', value: 30 },
-  { label: 'all', value: 0 }
-]
-
-// 從路由參數獲取天數
-const dayNumber = computed(() => {
-  const day = route.params.day as string
-  return parseInt(day, 10)
+// 從路由參數獲取日期
+const date = computed(() => {
+  const encodedDate = route.params.date as string
+  // 將 2025-09-21 轉換回 2025/09/21
+  return encodedDate.replace(/-/g, '/')
 })
 
-// 獲取指定天數的單字
+// 獲取指定日期的資料
+const dayData = computed(() => {
+  return toeflData.value.find(day => day.date === date.value)
+})
+
+// 獲取指定日期的單字
 const dayWords = computed(() => {
-  const dayData = toeflData.value.find(day => day.day === dayNumber.value)
-  return dayData ? dayData.words : []
-})
-
-// 計算總頁數
-const totalPages = computed(() => {
-  const total = dayWords.value.length
-  const pageSize = itemsPerPage.value === 0 ? Math.max(1, total) : itemsPerPage.value
-  return Math.max(1, Math.ceil(total / pageSize))
-})
-
-// 計算當前頁的單字
-const paginatedWords = computed(() => {
-  const total = dayWords.value.length
-  const pageSize = itemsPerPage.value === 0 ? total : itemsPerPage.value
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return dayWords.value.slice(start, end)
+  return dayData.value ? dayData.value.words : []
 })
 
 // 載入單字資料
@@ -207,14 +251,107 @@ function playPronunciation(word: string) {
   }
 }
 
-// 分頁事件處理
-function onPageChange(page: number) {
-  currentPage.value = page
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+// 朗誦文章內容
+function playArticleContent() {
+  if ('speechSynthesis' in window && dayData.value?.article?.content) {
+    if (isPaused.value) {
+      // 如果之前暫停了，繼續播放
+      speechSynthesis.resume()
+      isPlaying.value = true
+      isPaused.value = false
+    } else {
+      // 重新開始播放
+      speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(dayData.value.article.content)
+      utterance.lang = 'en-US'
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
+
+      utterance.onstart = () => {
+        isPlaying.value = true
+        isPaused.value = false
+      }
+
+      utterance.onend = () => {
+        isPlaying.value = false
+        isPaused.value = false
+      }
+
+      utterance.onerror = () => {
+        isPlaying.value = false
+        isPaused.value = false
+      }
+
+      speechSynthesis.speak(utterance)
+    }
+  }
 }
 
-function onItemsPerPageChange() {
-  currentPage.value = 1
+// 暫停朗誦
+function pauseArticleContent() {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.pause()
+    isPlaying.value = false
+    isPaused.value = true
+  }
+}
+
+// 停止朗誦
+function stopArticleContent() {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel()
+    isPlaying.value = false
+    isPaused.value = false
+  }
+}
+
+// 重頭朗誦
+function restartArticleContent() {
+  if ('speechSynthesis' in window && dayData.value?.article?.content) {
+    speechSynthesis.cancel()
+    isPaused.value = false
+
+    const utterance = new SpeechSynthesisUtterance(dayData.value.article.content)
+    utterance.lang = 'en-US'
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+
+    utterance.onstart = () => {
+      isPlaying.value = true
+      isPaused.value = false
+    }
+
+    utterance.onend = () => {
+      isPlaying.value = false
+      isPaused.value = false
+    }
+
+    utterance.onerror = () => {
+      isPlaying.value = false
+      isPaused.value = false
+    }
+
+    speechSynthesis.speak(utterance)
+  }
+}
+
+// 格式化文章內容
+function formatArticleContent(content: string): string {
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+}
+
+// 獲取 GitHub 編輯 URL
+function getGitHubEditUrl(): string {
+  // 將 2025/09/22 轉換為 2025-09-22
+  const encodedDate = date.value.replace(/\//g, '-')
+  return `https://github.com/ChungYingHo/CursorAI-toefl-words/blob/master/toefl/${encodedDate}.md`
 }
 
 onMounted(() => {

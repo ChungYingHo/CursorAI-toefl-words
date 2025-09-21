@@ -62,13 +62,13 @@
       <div class="vocab-card-wrapper">
         <q-card
           class="vocab-card cursor-pointer"
-          @click="$router.push('/toefl')"
+          @click="$router.push('/toefl/by-day')"
         >
           <q-card-section class="text-center q-pa-lg">
-            <q-icon name="school" size="48px" color="primary" class="q-mb-md" />
-            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">全部托福單字</div>
-            <div class="text-body2 text-dark-text-secondary">
-              瀏覽所有托福單字，系統化學習
+            <q-icon name="calendar_today" size="48px" color="secondary" class="q-mb-md" />
+            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">每日閱讀 (托福)</div>
+            <div class="text-body1 text-dark-text-secondary">
+              每日托福閱讀文章，循序漸進學習
             </div>
           </q-card-section>
         </q-card>
@@ -77,13 +77,28 @@
       <div class="vocab-card-wrapper">
         <q-card
           class="vocab-card cursor-pointer"
-          @click="$router.push('/toefl/by-day')"
+          @click="$router.push('/daily/by-day')"
         >
           <q-card-section class="text-center q-pa-lg">
-            <q-icon name="calendar_today" size="48px" color="secondary" class="q-mb-md" />
-            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">按天數瀏覽托福單字</div>
-            <div class="text-body2 text-dark-text-secondary">
-              按照天數規劃，循序漸進學習
+            <q-icon name="event" size="48px" color="info" class="q-mb-md" />
+            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">每日閱讀 (一般)</div>
+            <div class="text-body1 text-dark-text-secondary">
+              每日一般閱讀文章，持續累積單字
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <div class="vocab-card-wrapper">
+        <q-card
+          class="vocab-card cursor-pointer"
+          @click="$router.push('/toefl')"
+        >
+          <q-card-section class="text-center q-pa-lg">
+            <q-icon name="school" size="48px" color="primary" class="q-mb-md" />
+            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">全部托福單字</div>
+            <div class="text-body1 text-dark-text-secondary">
+              瀏覽所有托福單字，系統化學習
             </div>
           </q-card-section>
         </q-card>
@@ -97,23 +112,8 @@
           <q-card-section class="text-center q-pa-lg">
             <q-icon name="book" size="48px" color="accent" class="q-mb-md" />
             <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">全部一般單字</div>
-            <div class="text-body2 text-dark-text-secondary">
+            <div class="text-body1 text-dark-text-secondary">
               瀏覽所有一般單字，擴充詞彙量
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <div class="vocab-card-wrapper">
-        <q-card
-          class="vocab-card cursor-pointer"
-          @click="$router.push('/daily/by-day')"
-        >
-          <q-card-section class="text-center q-pa-lg">
-            <q-icon name="event" size="48px" color="info" class="q-mb-md" />
-            <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">按天數瀏覽一般單字</div>
-            <div class="text-body2 text-dark-text-secondary">
-              按照天數規劃，持續累積單字
             </div>
           </q-card-section>
         </q-card>
@@ -127,7 +127,7 @@
           <q-card-section class="text-center q-pa-lg">
             <q-icon name="quiz" size="48px" color="positive" class="q-mb-md" />
             <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">托福單字測驗</div>
-            <div class="text-body2 text-dark-text-secondary">
+            <div class="text-body1 text-dark-text-secondary">
               測試托福單字掌握程度
             </div>
           </q-card-section>
@@ -142,7 +142,7 @@
           <q-card-section class="text-center q-pa-lg">
             <q-icon name="assignment" size="48px" color="warning" class="q-mb-md" />
             <div class="text-h6 text-dark-text q-mb-sm font-weight-bold">一般單字測驗</div>
-            <div class="text-body2 text-dark-text-secondary">
+            <div class="text-body1 text-dark-text-secondary">
               測試一般單字掌握程度
             </div>
           </q-card-section>

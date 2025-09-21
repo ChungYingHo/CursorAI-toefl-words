@@ -53,25 +53,24 @@
               />
               <q-radio
                 v-model="quizSettings.range"
-                val="by-day"
-                label="按照天數選擇"
+                val="by-date"
+                label="按照日期選擇"
                 class="quiz-radio"
                 color="primary"
               />
             </div>
           </div>
 
-          <!-- 天數選擇 -->
-          <div v-if="quizSettings.range === 'by-day'" class="setting-group">
+          <!-- 日期選擇 -->
+          <div v-if="quizSettings.range === 'by-date'" class="setting-group">
             <div class="setting-label">
               <q-icon name="calendar_today" class="q-mr-sm" />
-              選擇天數
+              選擇日期
             </div>
             <q-select
-              v-model="quizSettings.selectedDays"
-              :options="availableDays.map(day => ({ label: `Day ${day}`, value: day }))"
+              v-model="quizSettings.selectedDate"
+              :options="availableDates"
               outlined
-              multiple
               class="quiz-select"
               emit-value
               map-options
@@ -117,8 +116,23 @@
 
             <!-- 題型一：顯示單字，選中文解釋 -->
             <div v-if="question.type === 'word-to-definition'">
-              <div class="text-h5 text-dark-text q-mb-lg">
-                {{ question.word }}
+              <div class="row items-center q-mb-lg">
+                <div class="text-h5 text-dark-text">
+                  {{ question.word }}
+                </div>
+                <q-btn
+                  flat
+                  round
+                  icon="volume_up"
+                  size="sm"
+                  color="primary"
+                  class="q-ml-sm"
+                  @click="playPronunciation(question.word)"
+                >
+                  <q-tooltip class="bg-dark-card text-dark-text">
+                    播放發音
+                  </q-tooltip>
+                </q-btn>
               </div>
             </div>
 
@@ -198,19 +212,46 @@
                 >
                   <div class="text-h6 q-mb-sm">
                     第 {{ index + 1 }} 題:
-                    <span v-if="question.type === 'word-to-definition'">{{ question.word }}</span>
+                    <span v-if="question.type === 'word-to-definition'">
+                      {{ question.word }}
+                      <q-btn
+                        flat
+                        round
+                        icon="volume_up"
+                        size="xs"
+                        color="white"
+                        class="q-ml-xs"
+                        @click="playPronunciation(question.word)"
+                      >
+                        <q-tooltip class="bg-dark-card text-dark-text">
+                          播放發音
+                        </q-tooltip>
+                      </q-btn>
+                    </span>
                     <span v-else>{{ question.definition }}</span>
                   </div>
                   <div class="text-body1 q-mb-sm">
                     正確答案: <strong>{{ question.type === 'word-to-definition' ? question.definition : question.word }}</strong>
+                    <span v-if="question.type === 'definition-to-word'">
+                      <q-btn
+                        flat
+                        round
+                        icon="volume_up"
+                        size="xs"
+                        color="white"
+                        class="q-ml-xs"
+                        @click="playPronunciation(question.word)"
+                      >
+                        <q-tooltip class="bg-dark-card text-dark-text">
+                          播放發音
+                        </q-tooltip>
+                      </q-btn>
+                    </span>
                   </div>
-                  <div v-if="!isCorrect(question.id)" class="text-body1 q-mb-sm">
-                    您的答案: <strong>{{ getUserAnswer(question.id) }}</strong>
-                  </div>
-                  <div class="text-body2 text-dark-text-secondary q-mb-xs">
+                  <div class="text-body1 text-dark-text-secondary q-mb-xs">
                     詞性: {{ question.partOfSpeech }}
                   </div>
-                  <div class="text-body2 text-dark-text-secondary">
+                  <div class="text-body1 text-dark-text-secondary">
                     例句: {{ question.example || '暫無例句' }}
                   </div>
                 </q-card>
@@ -250,7 +291,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import type { Word, DayVocabulary } from '../types/vocabulary'
+import type { Word, DayContent } from '../types/vocabulary'
 
 // 測驗狀態
 const quizState = ref<'idle' | 'quiz' | 'result'>('idle')
@@ -267,15 +308,15 @@ const quizResult = ref<QuizResult>({
 // 測驗設定
 const quizSettings = ref({
   questionCount: 10,
-  range: 'all' as 'all' | 'by-day',
-  selectedDays: [] as number[]
+  range: 'all' as 'all' | 'by-date',
+  selectedDate: null as string | null
 })
 
 const questionCountOptions = [5, 10, 15, 20, 25, 30, 50, 100, 250]
 
 // 單字資料
-const toeflData = ref<DayVocabulary[]>([])
-const availableDays = ref<number[]>([])
+const toeflData = ref<DayContent[]>([])
+const availableDates = ref<Array<{ label: string, value: string }>>([])
 
 // 測驗問題類型
 interface QuizQuestion {
@@ -297,8 +338,8 @@ interface QuizResult {
 
 // 計算屬性
 const canStartQuiz = computed(() => {
-  if (quizSettings.value.range === 'by-day') {
-    return quizSettings.value.selectedDays.length > 0
+  if (quizSettings.value.range === 'by-date') {
+    return quizSettings.value.selectedDate !== null
   }
   return true
 })
@@ -313,8 +354,11 @@ async function loadVocabularyData() {
     const response = await fetch('/toefl.json')
     if (response.ok) {
       toeflData.value = await response.json()
-      // 提取可用天數
-      availableDays.value = toeflData.value.map(day => day.day).sort((a, b) => a - b)
+      // 提取可用日期
+      availableDates.value = toeflData.value.map(day => ({
+        label: `${day.date} - ${day.article?.title || '無標題'}`,
+        value: day.date
+      }))
     }
   } catch {
     // 載入托福單字資料失敗
@@ -390,7 +434,7 @@ function getAllWords(): Word[] {
   } else {
     const words: Word[] = []
     toeflData.value.forEach(day => {
-      if (quizSettings.value.selectedDays.includes(day.day)) {
+      if (day.date === quizSettings.value.selectedDate) {
         words.push(...day.words)
       }
     })
@@ -495,13 +539,15 @@ function isCorrect(questionId: string): boolean {
   return userAnswers.value[questionId] === question.correctAnswer
 }
 
-// 獲取用戶答案
-function getUserAnswer(questionId: string): string {
-  const question = quizQuestions.value.find(q => q.id === questionId)
-  if (!question) return ''
-  const userAnswerIndex = userAnswers.value[questionId]
-  if (userAnswerIndex === undefined) return ''
-  return question.options[userAnswerIndex] || ''
+// 播放發音
+function playPronunciation(word: string) {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(word)
+    utterance.lang = 'en-US'
+    utterance.rate = 0.8
+    speechSynthesis.speak(utterance)
+  }
 }
 
 // 重置測驗

@@ -5,10 +5,10 @@
         <!-- Logo 和網站名稱 (可點擊回到首頁) -->
         <div class="row items-center q-gutter-sm cursor-pointer" @click="$router.push('/')">
           <q-avatar size="32px">
-            <img src="/logo.png" alt="VocabQuest Logo" />
+            <img src="/logo.png" alt="English Forge Logo" />
           </q-avatar>
           <div class="text-h6 text-dark-text font-weight-medium">
-            VocabQuest
+            English Forge
           </div>
         </div>
 
@@ -35,12 +35,12 @@
           >
             <q-route-tab
               name="home"
-              label="Home"
+              label="主頁"
               to="/"
               exact
             />
 
-            <q-tab name="vocabulary" label="Vocabulary">
+            <q-tab name="reading" label="英文閱讓">
               <q-menu
                 class="bg-dark-card"
                 anchor="bottom left"
@@ -48,6 +48,27 @@
                 :offset="[0, 10]"
               >
                 <q-list class="bg-dark-card">
+
+                  <q-item
+                    clickable
+                    v-close-popup
+                    to="/toefl/by-day"
+                    class="text-dark"
+                  >
+                    <q-item-section>
+                      <q-item-label>每日閱讀 (托福)</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable
+                    v-close-popup
+                    to="/daily/by-day"
+                    class="text-dark"
+                  >
+                    <q-item-section>
+                      <q-item-label>每日閱讀 (一般)</q-item-label>
+                    </q-item-section>
+                  </q-item>
                   <q-item
                     clickable
                     v-close-popup
@@ -61,16 +82,6 @@
                   <q-item
                     clickable
                     v-close-popup
-                    to="/toefl/by-day"
-                    class="text-dark"
-                  >
-                    <q-item-section>
-                      <q-item-label>托福單字 (按天數)</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
-                    v-close-popup
                     to="/daily"
                     class="text-dark"
                   >
@@ -78,21 +89,12 @@
                       <q-item-label>一般單字</q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item
-                    clickable
-                    v-close-popup
-                    to="/daily/by-day"
-                    class="text-dark"
-                  >
-                    <q-item-section>
-                      <q-item-label>一般單字 (按天數)</q-item-label>
-                    </q-item-section>
-                  </q-item>
+
                 </q-list>
               </q-menu>
             </q-tab>
 
-            <q-tab name="quiz" label="Quiz">
+            <q-tab name="quiz" label="測驗">
               <q-menu
                 class="bg-dark-card"
                 anchor="bottom left"
@@ -168,7 +170,35 @@
 
         <q-separator class="q-my-md" color="grey-7" />
 
-        <q-item-label header class="text-grey-4 q-mb-sm">單字學習</q-item-label>
+        <q-item-label header class="text-grey-4 q-mb-sm">英文閱讀</q-item-label>
+
+        <q-item
+          clickable
+          to="/toefl/by-day"
+          class="text-white q-mb-sm"
+          active-class="text-primary"
+        >
+          <q-item-section avatar>
+            <q-icon name="calendar_today" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>每日閱讀 (托福)</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item
+          clickable
+          to="/daily/by-day"
+          class="text-white q-mb-sm"
+          active-class="text-primary"
+        >
+          <q-item-section avatar>
+            <q-icon name="calendar_today" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>每日閱讀 (一般)</q-item-label>
+          </q-item-section>
+        </q-item>
 
         <q-item
           clickable
@@ -186,20 +216,6 @@
 
         <q-item
           clickable
-          to="/toefl/by-day"
-          class="text-white q-mb-sm"
-          active-class="text-primary"
-        >
-          <q-item-section avatar>
-            <q-icon name="calendar_today" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>托福單字 (按天數)</q-item-label>
-          </q-item-section>
-        </q-item>
-
-        <q-item
-          clickable
           to="/daily"
           class="text-white q-mb-sm"
           active-class="text-primary"
@@ -209,20 +225,6 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>一般單字</q-item-label>
-          </q-item-section>
-        </q-item>
-
-        <q-item
-          clickable
-          to="/daily/by-day"
-          class="text-white q-mb-sm"
-          active-class="text-primary"
-        >
-          <q-item-section avatar>
-            <q-icon name="calendar_today" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>一般單字 (按天數)</q-item-label>
           </q-item-section>
         </q-item>
 
