@@ -64,19 +64,52 @@
               >
                 <div class="d-flex align-items-center">
                   <span v-html="formatArticleContent(paragraph)" class="flex-grow"></span>
-                  <q-btn
-                    size="xs"
-                    color="teal"
-                    outline
-                    round
-                    icon="play_arrow"
-                    @click="playParagraph(paragraph)"
-                    class="q-ml-sm"
-                  >
-                    <q-tooltip class="bg-dark-card text-dark-text">
-                      朗誦此段落
-                    </q-tooltip>
-                  </q-btn>
+                  <div class="q-ml-sm d-flex q-gutter-xs">
+                    <!-- 播放/繼續按鈕 -->
+                    <q-btn
+                      v-if="!isPlaying || (isPaused && currentParagraph !== paragraph)"
+                      size="xs"
+                      color="teal"
+                      outline
+                      round
+                      icon="play_arrow"
+                      @click="playParagraph(paragraph)"
+                    >
+                      <q-tooltip class="bg-dark-card text-dark-text">
+                        {{ isPaused && currentParagraph === paragraph ? '繼續朗誦' : '朗誦此段落' }}
+                      </q-tooltip>
+                    </q-btn>
+
+                    <!-- 暫停按鈕 -->
+                    <q-btn
+                      v-if="isPlaying && currentParagraph === paragraph"
+                      size="xs"
+                      color="amber"
+                      outline
+                      round
+                      icon="pause"
+                      @click="pauseParagraph"
+                    >
+                      <q-tooltip class="bg-dark-card text-dark-text">
+                        暫停朗誦
+                      </q-tooltip>
+                    </q-btn>
+
+                    <!-- 停止按鈕 -->
+                    <q-btn
+                      v-if="isPlaying || isPaused"
+                      size="xs"
+                      color="red"
+                      outline
+                      round
+                      icon="stop"
+                      @click="stopParagraph"
+                    >
+                      <q-tooltip class="bg-dark-card text-dark-text">
+                        停止朗誦
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
                 </div>
               </div>
             </div>
@@ -160,6 +193,9 @@ const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const dailyData = ref<DayContent[]>([])
+const isPlaying = ref(false)
+const isPaused = ref(false)
+const currentParagraph = ref<string | null>(null)
 
 // 從路由參數獲取日期
 const date = computed(() => {
@@ -220,25 +256,69 @@ function getArticleParagraphs(content: string): string[] {
 // 朗誦單個段落
 function playParagraph(paragraph: string) {
   if ('speechSynthesis' in window) {
-    // 停止當前播放
+    if (isPaused.value && currentParagraph.value === paragraph) {
+      // 如果之前暫停了同一個段落，繼續播放
+      speechSynthesis.resume()
+      isPlaying.value = true
+      isPaused.value = false
+    } else {
+      // 重新開始播放
+      speechSynthesis.cancel()
+      currentParagraph.value = paragraph
+
+      // 清理段落內容
+      const cleanParagraph = paragraph
+        .replace(/\r\n/g, ' ')  // 移除換行符
+        .replace(/\n/g, ' ')   // 移除換行符
+        .replace(/"/g, '')      // 移除雙引號
+        .replace(/'/g, '')      // 移除單引號
+        .replace(/\[.*?\]/g, '') // 移除方括號內容
+        .replace(/\s+/g, ' ')   // 合併多個空格為單個空格
+        .trim()                 // 移除首尾空格
+
+      const utterance = new SpeechSynthesisUtterance(cleanParagraph)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.9
+      utterance.pitch = 1.0
+
+      utterance.onstart = () => {
+        isPlaying.value = true
+        isPaused.value = false
+      }
+
+      utterance.onend = () => {
+        isPlaying.value = false
+        isPaused.value = false
+        currentParagraph.value = null
+      }
+
+      utterance.onerror = () => {
+        isPlaying.value = false
+        isPaused.value = false
+        currentParagraph.value = null
+      }
+
+      speechSynthesis.speak(utterance)
+    }
+  }
+}
+
+// 暫停朗誦
+function pauseParagraph() {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.pause()
+    isPlaying.value = false
+    isPaused.value = true
+  }
+}
+
+// 停止朗誦
+function stopParagraph() {
+  if ('speechSynthesis' in window) {
     speechSynthesis.cancel()
-
-    // 清理段落內容
-    const cleanParagraph = paragraph
-      .replace(/\r\n/g, ' ')  // 移除換行符
-      .replace(/\n/g, ' ')   // 移除換行符
-      .replace(/"/g, '')      // 移除雙引號
-      .replace(/'/g, '')      // 移除單引號
-      .replace(/\[.*?\]/g, '') // 移除方括號內容
-      .replace(/\s+/g, ' ')   // 合併多個空格為單個空格
-      .trim()                 // 移除首尾空格
-
-    const utterance = new SpeechSynthesisUtterance(cleanParagraph)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.9
-    utterance.pitch = 1.0
-
-    speechSynthesis.speak(utterance)
+    isPlaying.value = false
+    isPaused.value = false
+    currentParagraph.value = null
   }
 }
 
