@@ -60,11 +60,11 @@
               <div
                 v-for="(paragraph, index) in getArticleParagraphs(dayData.article.content)"
                 :key="index"
-                class="q-mb-md"
+                class="q-mb-lg"
               >
                 <div class="d-flex align-items-center">
                   <span v-html="formatArticleContent(paragraph)" class="flex-grow"></span>
-                  <div class="q-ml-sm d-flex q-gutter-xs">
+                  <div class="d-flex q-gutter-xs q-mt-xs">
                     <!-- 播放/繼續按鈕 -->
                     <q-btn
                       v-if="!paragraphStates[paragraph]?.isPlaying || paragraphStates[paragraph]?.isPaused"
