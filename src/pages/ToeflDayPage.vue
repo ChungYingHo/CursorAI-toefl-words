@@ -64,7 +64,7 @@
               >
                 <div class="d-flex align-items-center">
                   <span v-html="formatArticleContent(paragraph)" class="flex-grow"></span>
-                  <div class="d-flex q-gutter-xs q-mt-xs">
+                  <div v-if="!isBlockParagraph(paragraph)" class="d-flex q-gutter-xs q-mt-xs">
                     <!-- 播放/繼續按鈕 -->
                     <q-btn
                       v-if="!paragraphStates[paragraph]?.isPlaying || paragraphStates[paragraph]?.isPaused"
@@ -247,10 +247,58 @@ function playPronunciation(word: string) {
 
 // 將文章內容分割成段落
 function getArticleParagraphs(content: string): string[] {
-  return content
+  // 先將 note 和 summary 區塊替換為特殊標記，避免被分割
+  let processedContent = content
+
+  // 處理 note 區塊 - 用特殊標記替換，並將內部空行替換為特殊符號
+  processedContent = processedContent.replace(/:::note\r\n([\s\S]*?)\r\n:::/g, (match, noteContent) => {
+    // 將 note 內容中的空行替換為特殊符號，避免被分割
+    const processedNoteContent = noteContent.replace(/\r\n\r\n/g, '__DOUBLE_NEWLINE__')
+    return `__NOTE_BLOCK__${processedNoteContent}__END_NOTE__`
+  })
+
+  // 處理 summary 區塊 - 用特殊標記替換，並將內部空行替換為特殊符號
+  processedContent = processedContent.replace(/:::summary\r\n([\s\S]*?)\r\n:::/g, (match, summaryContent) => {
+    // 將 summary 內容中的空行替換為特殊符號，避免被分割
+    const processedSummaryContent = summaryContent.replace(/\r\n\r\n/g, '__DOUBLE_NEWLINE__')
+    return `__SUMMARY_BLOCK__${processedSummaryContent}__END_SUMMARY__`
+  })
+
+  // 分割段落
+  const paragraphs = processedContent
     .split(/\r\n\r\n|\n\n/)  // 按雙換行分割段落
     .filter(paragraph => paragraph.trim().length > 0)  // 過濾空段落
     .map(paragraph => paragraph.trim())  // 移除首尾空白
+
+  // 將特殊標記還原為原始格式
+  return paragraphs.map(paragraph => {
+    let result = paragraph
+
+    // 還原 note 區塊
+    result = result.replace(/__NOTE_BLOCK__(.*?)__END_NOTE__/gs, (match, noteContent) => {
+      // 還原 note 內容中的空行
+      const restoredNoteContent = noteContent.replace(/__DOUBLE_NEWLINE__/g, '\r\n\r\n')
+      return `:::note\r\n${restoredNoteContent}\r\n:::`
+    })
+
+    // 還原 summary 區塊
+    result = result.replace(/__SUMMARY_BLOCK__(.*?)__END_SUMMARY__/gs, (match, summaryContent) => {
+      // 還原 summary 內容中的空行
+      const restoredSummaryContent = summaryContent.replace(/__DOUBLE_NEWLINE__/g, '\r\n\r\n')
+      return `:::summary\r\n${restoredSummaryContent}\r\n:::`
+    })
+
+    return result
+  })
+}
+
+// 檢查段落是否包含 note 或 summary 區塊
+function isBlockParagraph(paragraph: string): boolean {
+  return paragraph.includes(':::note') ||
+         paragraph.includes(':::summary') ||
+         paragraph.includes(':::') ||
+         paragraph.includes('__NOTE_BLOCK__') ||
+         paragraph.includes('__SUMMARY_BLOCK__')
 }
 
 // 朗誦單個段落
@@ -321,13 +369,38 @@ function stopParagraph(paragraph: string) {
 
 // 格式化文章內容
 function formatArticleContent(content: string): string {
-  return content
+  const formatted = content
+    // 1. 處理被 `` 包起來的字（用黃色標記）
+    .replace(/`([^`]+)`/g, '<span style="background-color: #ffeb3b; color: #000; padding: 2px 4px; border-radius: 3px;">$1</span>')
+    // 2. 處理 note block
+    .replace(/:::note\r\n([\s\S]*?)\r\n:::/g, (match, noteContent) => {
+      const processedContent = noteContent
+        .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
+        .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
+        .replace(/\r\n/g, '<br>')      // Windows 換行
+        .replace(/\n/g, '<br>')        // 一般換行
+        .trim()
+      return `<div style="background-color: #1f2937; border-left: 4px solid #10b981; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;"><strong>📝 Note:</strong><br>${processedContent}</div>`
+    })
+    // 3. 處理 summary block
+    .replace(/:::summary\r\n([\s\S]*?)\r\n:::/g, (match, summaryContent) => {
+      const processedContent = summaryContent
+        .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
+        .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
+        .replace(/\r\n/g, '<br>')      // Windows 換行
+        .replace(/\n/g, '<br>')        // 一般換行
+        .trim()
+      return `<div style="background-color: #1f2937; border-left: 4px solid #8b5cf6; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;"><strong>📋 Summary:</strong><br>${processedContent}</div>`
+    })
+    // 4. 基本 Markdown 格式
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^# (.*$)/gm, '<h1>$1</h1>')
     .replace(/^## (.*$)/gm, '<h2>$1</h2>')
     .replace(/^### (.*$)/gm, '<h3>$1</h3>')
     .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
+
+  return formatted
 }
 
 // 獲取 GitHub 編輯 URL
