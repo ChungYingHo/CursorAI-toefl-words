@@ -113,6 +113,22 @@
                 </div>
               </div>
             </div>
+
+            <!-- Note 區塊 -->
+            <div v-if="dayData?.article?.note" class="q-mt-md">
+              <div style="background-color: #1f2937; border-left: 4px solid #10b981; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;">
+                <strong>📝 Note:</strong><br>
+                <span v-html="formatNoteContent(dayData.article.note)"></span>
+              </div>
+            </div>
+
+            <!-- Summary 區塊 -->
+            <div v-if="dayData?.article?.summary" class="q-mt-md">
+              <div style="background-color: #1f2937; border-left: 4px solid #8b5cf6; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;">
+                <strong>📋 Summary:</strong><br>
+                <span v-html="formatNoteContent(dayData.article.summary)"></span>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
       </div>
@@ -372,26 +388,6 @@ function formatArticleContent(content: string): string {
   const formatted = content
     // 1. 處理被 `` 包起來的字（用黃色標記）
     .replace(/`([^`]+)`/g, '<span style="background-color: #ffeb3b; color: #000; padding: 2px 4px; border-radius: 3px;">$1</span>')
-    // 2. 處理 note block - 使用更寬鬆的匹配
-    .replace(/:::note\s*([\s\S]*?)\s*:::/g, (match, noteContent) => {
-      const processedContent = noteContent
-        .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
-        .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
-        .replace(/\r\n/g, '<br>')      // Windows 換行
-        .replace(/\n/g, '<br>')        // 一般換行
-        .trim()
-      return `<div style="background-color: #1f2937; border-left: 4px solid #10b981; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;"><strong>📝 Note:</strong><br>${processedContent}</div>`
-    })
-    // 3. 處理 summary block - 使用更寬鬆的匹配
-    .replace(/:::summary\s*([\s\S]*?)\s*:::/g, (match, summaryContent) => {
-      const processedContent = summaryContent
-        .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
-        .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
-        .replace(/\r\n/g, '<br>')      // Windows 換行
-        .replace(/\n/g, '<br>')        // 一般換行
-        .trim()
-      return `<div style="background-color: #1f2937; border-left: 4px solid #8b5cf6; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;"><strong>📋 Summary:</strong><br>${processedContent}</div>`
-    })
     // 4. 基本 Markdown 格式
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -401,6 +397,15 @@ function formatArticleContent(content: string): string {
     .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
 
   return formatted
+}
+
+// 格式化 note 和 summary 內容
+function formatNoteContent(content: string): string {
+  return content
+    .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
+    .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
+    .replace(/\r\n/g, '<br>')      // Windows 換行
+    .replace(/\n/g, '<br>')        // 一般換行
 }
 
 // 獲取 GitHub 編輯 URL

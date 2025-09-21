@@ -113,6 +113,22 @@
                 </div>
               </div>
             </div>
+
+            <!-- Note 區塊 -->
+            <div v-if="dayData?.article?.note" class="q-mt-md">
+              <div style="background-color: #1f2937; border-left: 4px solid #10b981; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;">
+                <strong>📝 Note:</strong><br>
+                <span v-html="formatNoteContent(dayData.article.note)"></span>
+              </div>
+            </div>
+
+            <!-- Summary 區塊 -->
+            <div v-if="dayData?.article?.summary" class="q-mt-md">
+              <div style="background-color: #1f2937; border-left: 4px solid #8b5cf6; padding: 12px; margin: 8px 0; border-radius: 6px; color: #f9fafb;">
+                <strong>📋 Summary:</strong><br>
+                <span v-html="formatNoteContent(dayData.article.summary)"></span>
+              </div>
+            </div>
           </q-card-section>
         </q-card>
       </div>
@@ -399,6 +415,15 @@ function formatArticleContent(content: string): string {
     .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
 
   return formatted
+}
+
+// 格式化 note 和 summary 內容
+function formatNoteContent(content: string): string {
+  return content
+    .replace(/\r\n {2}/g, '<br>')  // 兩個空格表示換行
+    .replace(/\n {2}/g, '<br>')    // 兩個空格表示換行
+    .replace(/\r\n/g, '<br>')      // Windows 換行
+    .replace(/\n/g, '<br>')        // 一般換行
 }
 
 // 獲取 GitHub 編輯 URL

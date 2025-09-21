@@ -19,6 +19,8 @@ export interface Article {
   title: string
   link: string | null
   content: string
+  note?: string
+  summary?: string
 }
 
 // 新的每日資料結構（包含文章和單字）

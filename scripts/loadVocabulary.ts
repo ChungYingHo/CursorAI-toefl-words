@@ -68,6 +68,36 @@ function parseFrontmatter(content: string): { frontmatter: any, content: string 
   return { frontmatter, content: contentText }
 }
 
+// 解析 note 和 summary 區塊
+function parseBlocks(content: string): { note?: string, summary?: string, content: string } {
+  let note: string | undefined
+  let summary: string | undefined
+  let cleanContent = content
+
+  // 解析 note 區塊
+  const noteMatch = content.match(/:::note\s*([\s\S]*?)\s*:::/g)
+  if (noteMatch) {
+    note = noteMatch[0].replace(/:::note\s*/, '').replace(/\s*:::/, '').trim()
+    cleanContent = cleanContent.replace(/:::note\s*([\s\S]*?)\s*:::/g, '')
+  }
+
+  // 解析 summary 區塊
+  const summaryMatch = content.match(/:::summary\s*([\s\S]*?)\s*:::/g)
+  if (summaryMatch) {
+    summary = summaryMatch[0].replace(/:::summary\s*/, '').replace(/\s*:::/, '').trim()
+    cleanContent = cleanContent.replace(/:::summary\s*([\s\S]*?)\s*:::/g, '')
+  }
+
+  const result: { note?: string, summary?: string, content: string } = {
+    content: cleanContent.trim()
+  }
+
+  if (note) result.note = note
+  if (summary) result.summary = summary
+
+  return result
+}
+
 // 解析單個 markdown 檔案（新格式）
 function parseMarkdownFile(filePath: string): DayContent | null {
   try {
@@ -84,7 +114,10 @@ function parseMarkdownFile(filePath: string): DayContent | null {
     let articleContent = ''
     let inWordsSection = false
 
-    const lines = contentText.split('\n')
+    // 解析 note 和 summary 區塊
+    const { note, summary, content: cleanContent } = parseBlocks(contentText)
+
+    const lines = cleanContent.split('\n')
 
     for (const line of lines) {
       // 檢查是否進入單字區段
@@ -122,7 +155,9 @@ function parseMarkdownFile(filePath: string): DayContent | null {
       date: frontmatter.date || '',
       title: frontmatter.title,
       link: frontmatter.link,
-      content: articleContent.trim()
+      content: articleContent.trim(),
+      ...(note && { note }),
+      ...(summary && { summary })
     } : null
 
     return {
