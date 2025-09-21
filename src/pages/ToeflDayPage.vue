@@ -54,69 +54,31 @@
                           icon="edit"
                           label="Edit on GitHub"
                         />
-                        <q-btn
-                          v-if="!isPlaying && !isPaused"
-                          color="teal"
-                          outline
-                          icon="play_arrow"
-                          label="全文朗誦"
-                          @click="playArticleContent"
-                        >
-                          <q-tooltip class="bg-dark-card text-dark-text">
-                            開始朗誦文章
-                          </q-tooltip>
-                        </q-btn>
-                        <q-btn
-                          v-if="!isPlaying && isPaused"
-                          color="teal"
-                          outline
-                          icon="play_arrow"
-                          label="繼續朗誦"
-                          @click="playArticleContent"
-                        >
-                          <q-tooltip class="bg-dark-card text-dark-text">
-                            繼續朗誦文章
-                          </q-tooltip>
-                        </q-btn>
-                        <q-btn
-                          v-if="!isPlaying && isPaused"
-                          color="blue"
-                          outline
-                          icon="replay"
-                          label="重頭朗誦"
-                          @click="restartArticleContent"
-                        >
-                          <q-tooltip class="bg-dark-card text-dark-text">
-                            從頭開始朗誦
-                          </q-tooltip>
-                        </q-btn>
-                        <q-btn
-                          v-if="isPlaying"
-                          color="amber"
-                          outline
-                          icon="pause"
-                          label="暫停朗誦"
-                          @click="pauseArticleContent"
-                        >
-                          <q-tooltip class="bg-dark-card text-dark-text">
-                            暫停朗誦
-                          </q-tooltip>
-                        </q-btn>
-                        <q-btn
-                          v-if="isPlaying"
-                          color="red"
-                          outline
-                          icon="stop"
-                          label="停止"
-                          @click="stopArticleContent"
-                        >
-                          <q-tooltip class="bg-dark-card text-dark-text">
-                            停止朗誦
-                          </q-tooltip>
-                        </q-btn>
                       </div>
                     </div>
-            <div class="text-body1 text-white" v-html="formatArticleContent(dayData.article.content)">
+            <div class="text-body1 text-white">
+              <div
+                v-for="(paragraph, index) in getArticleParagraphs(dayData.article.content)"
+                :key="index"
+                class="q-mb-md"
+              >
+                <div class="d-flex align-items-center">
+                  <span v-html="formatArticleContent(paragraph)" class="flex-grow"></span>
+                  <q-btn
+                    size="xs"
+                    color="teal"
+                    outline
+                    round
+                    icon="play_arrow"
+                    @click="playParagraph(paragraph)"
+                    class="q-ml-sm"
+                  >
+                    <q-tooltip class="bg-dark-card text-dark-text">
+                      朗誦此段落
+                    </q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
             </div>
           </q-card-section>
         </q-card>
@@ -192,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import type { DayContent } from '../types/vocabulary'
 
@@ -200,8 +162,6 @@ const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const toeflData = ref<DayContent[]>([])
-const isPlaying = ref(false)
-const isPaused = ref(false)
 
 // 從路由參數獲取日期
 const date = computed(() => {
@@ -246,90 +206,39 @@ function playPronunciation(word: string) {
 
     const utterance = new SpeechSynthesisUtterance(word)
     utterance.lang = 'en-US'
-    utterance.rate = 0.8
+    utterance.rate = 0.9
     speechSynthesis.speak(utterance)
   }
 }
 
-// 朗誦文章內容
-function playArticleContent() {
-  if ('speechSynthesis' in window && dayData.value?.article?.content) {
-    if (isPaused.value) {
-      // 如果之前暫停了，繼續播放
-      speechSynthesis.resume()
-      isPlaying.value = true
-      isPaused.value = false
-    } else {
-      // 重新開始播放
-      speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(dayData.value.article.content)
-      utterance.lang = 'en-US'
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
-
-      utterance.onstart = () => {
-        isPlaying.value = true
-        isPaused.value = false
-      }
-
-      utterance.onend = () => {
-        isPlaying.value = false
-        isPaused.value = false
-      }
-
-      utterance.onerror = () => {
-        isPlaying.value = false
-        isPaused.value = false
-      }
-
-      speechSynthesis.speak(utterance)
-    }
-  }
+// 將文章內容分割成段落
+function getArticleParagraphs(content: string): string[] {
+  return content
+    .split(/\r\n\r\n|\n\n/)  // 按雙換行分割段落
+    .filter(paragraph => paragraph.trim().length > 0)  // 過濾空段落
+    .map(paragraph => paragraph.trim())  // 移除首尾空白
 }
 
-// 暫停朗誦
-function pauseArticleContent() {
+// 朗誦單個段落
+function playParagraph(paragraph: string) {
   if ('speechSynthesis' in window) {
-    speechSynthesis.pause()
-    isPlaying.value = false
-    isPaused.value = true
-  }
-}
-
-// 停止朗誦
-function stopArticleContent() {
-  if ('speechSynthesis' in window) {
+    // 停止當前播放
     speechSynthesis.cancel()
-    isPlaying.value = false
-    isPaused.value = false
-  }
-}
 
-// 重頭朗誦
-function restartArticleContent() {
-  if ('speechSynthesis' in window && dayData.value?.article?.content) {
-    speechSynthesis.cancel()
-    isPaused.value = false
+    // 清理段落內容
+    const cleanParagraph = paragraph
+      .replace(/\r\n/g, ' ')  // 移除換行符
+      .replace(/\n/g, ' ')   // 移除換行符
+      .replace(/"/g, '')      // 移除雙引號
+      .replace(/'/g, '')      // 移除單引號
+      .replace(/\[.*?\]/g, '') // 移除方括號內容
+      .replace(/\s+/g, ' ')   // 合併多個空格為單個空格
+      .trim()                 // 移除首尾空格
 
-    const utterance = new SpeechSynthesisUtterance(dayData.value.article.content)
+    const utterance = new SpeechSynthesisUtterance(cleanParagraph)
     utterance.lang = 'en-US'
-    utterance.rate = 1.0
+    utterance.rate = 0.9
     utterance.pitch = 1.0
-
-    utterance.onstart = () => {
-      isPlaying.value = true
-      isPaused.value = false
-    }
-
-    utterance.onend = () => {
-      isPlaying.value = false
-      isPaused.value = false
-    }
-
-    utterance.onerror = () => {
-      isPlaying.value = false
-      isPaused.value = false
-    }
 
     speechSynthesis.speak(utterance)
   }
@@ -338,7 +247,6 @@ function restartArticleContent() {
 // 格式化文章內容
 function formatArticleContent(content: string): string {
   return content
-    .replace(/\n/g, '<br>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^# (.*$)/gm, '<h1>$1</h1>')
@@ -356,6 +264,13 @@ function getGitHubEditUrl(): string {
 
 onMounted(() => {
   void loadVocabularyData()
+})
+
+onUnmounted(() => {
+  // 頁面切換時停止朗誦
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel()
+  }
 })
 </script>
 

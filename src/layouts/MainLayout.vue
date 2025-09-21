@@ -284,20 +284,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const leftDrawerOpen = ref(false)
 
 // 根據當前路由設定 active tab
-const activeTab = computed(() => {
-  const path = route.path
-  if (path === '/') return 'home'
-  if (path.startsWith('/toefl') || path.startsWith('/daily')) return 'vocabulary'
-  if (path.startsWith('/quiz')) return 'quiz'
-  return 'home'
-})
+const activeTab = ref('home')
+
+// 監聽路由變化，更新 active tab
+watch(() => route.path, (newPath) => {
+  if (newPath === '/') {
+    activeTab.value = 'home'
+  } else if (newPath.startsWith('/toefl') || newPath.startsWith('/daily')) {
+    activeTab.value = 'vocabulary'
+  } else if (newPath.startsWith('/quiz')) {
+    activeTab.value = 'quiz'
+  } else {
+    activeTab.value = 'home'
+  }
+}, { immediate: true })
 
 function openExternalLink() {
   window.open('https://jeremyho.tw/', '_blank')
