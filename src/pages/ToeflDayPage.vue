@@ -251,14 +251,14 @@ function getArticleParagraphs(content: string): string[] {
   let processedContent = content
 
   // 處理 note 區塊 - 用特殊標記替換，並將內部空行替換為特殊符號
-  processedContent = processedContent.replace(/:::note\r\n([\s\S]*?)\r\n:::/g, (match, noteContent) => {
+  processedContent = processedContent.replace(/:::note\s*([\s\S]*?)\s*:::/g, (match, noteContent) => {
     // 將 note 內容中的空行替換為特殊符號，避免被分割
     const processedNoteContent = noteContent.replace(/\r\n\r\n/g, '__DOUBLE_NEWLINE__')
     return `__NOTE_BLOCK__${processedNoteContent}__END_NOTE__`
   })
 
   // 處理 summary 區塊 - 用特殊標記替換，並將內部空行替換為特殊符號
-  processedContent = processedContent.replace(/:::summary\r\n([\s\S]*?)\r\n:::/g, (match, summaryContent) => {
+  processedContent = processedContent.replace(/:::summary\s*([\s\S]*?)\s*:::/g, (match, summaryContent) => {
     // 將 summary 內容中的空行替換為特殊符號，避免被分割
     const processedSummaryContent = summaryContent.replace(/\r\n\r\n/g, '__DOUBLE_NEWLINE__')
     return `__SUMMARY_BLOCK__${processedSummaryContent}__END_SUMMARY__`
