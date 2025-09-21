@@ -67,7 +67,7 @@
                   <div class="q-ml-sm d-flex q-gutter-xs">
                     <!-- 播放/繼續按鈕 -->
                     <q-btn
-                      v-if="!isPlaying || (isPaused && currentParagraph !== paragraph)"
+                      v-if="!paragraphStates[paragraph]?.isPlaying || paragraphStates[paragraph]?.isPaused"
                       size="xs"
                       color="teal"
                       outline
@@ -76,19 +76,19 @@
                       @click="playParagraph(paragraph)"
                     >
                       <q-tooltip class="bg-dark-card text-dark-text">
-                        {{ isPaused && currentParagraph === paragraph ? '繼續朗誦' : '朗誦此段落' }}
+                        {{ paragraphStates[paragraph]?.isPaused ? '繼續朗誦' : '朗誦此段落' }}
                       </q-tooltip>
                     </q-btn>
 
                     <!-- 暫停按鈕 -->
                     <q-btn
-                      v-if="isPlaying && currentParagraph === paragraph"
+                      v-if="paragraphStates[paragraph]?.isPlaying"
                       size="xs"
                       color="amber"
                       outline
                       round
                       icon="pause"
-                      @click="pauseParagraph"
+                      @click="pauseParagraph(paragraph)"
                     >
                       <q-tooltip class="bg-dark-card text-dark-text">
                         暫停朗誦
@@ -97,13 +97,13 @@
 
                     <!-- 停止按鈕 -->
                     <q-btn
-                      v-if="isPlaying || isPaused"
+                      v-if="paragraphStates[paragraph]?.isPlaying || paragraphStates[paragraph]?.isPaused"
                       size="xs"
                       color="red"
                       outline
                       round
                       icon="stop"
-                      @click="stopParagraph"
+                      @click="stopParagraph(paragraph)"
                     >
                       <q-tooltip class="bg-dark-card text-dark-text">
                         停止朗誦
@@ -195,9 +195,7 @@ const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const toeflData = ref<DayContent[]>([])
-const isPlaying = ref(false)
-const isPaused = ref(false)
-const currentParagraph = ref<string | null>(null)
+const paragraphStates = ref<Record<string, { isPlaying: boolean; isPaused: boolean }>>({})
 
 // 從路由參數獲取日期
 const date = computed(() => {
@@ -258,15 +256,20 @@ function getArticleParagraphs(content: string): string[] {
 // 朗誦單個段落
 function playParagraph(paragraph: string) {
   if ('speechSynthesis' in window) {
-    if (isPaused.value && currentParagraph.value === paragraph) {
+    const state = paragraphStates.value[paragraph]
+
+    if (state?.isPaused) {
       // 如果之前暫停了同一個段落，繼續播放
       speechSynthesis.resume()
-      isPlaying.value = true
-      isPaused.value = false
+      paragraphStates.value[paragraph] = { isPlaying: true, isPaused: false }
     } else {
-      // 重新開始播放
+      // 停止其他段落的播放
       speechSynthesis.cancel()
-      currentParagraph.value = paragraph
+
+      // 重置所有段落狀態
+      Object.keys(paragraphStates.value).forEach(key => {
+        paragraphStates.value[key] = { isPlaying: false, isPaused: false }
+      })
 
       // 清理段落內容
       const cleanParagraph = paragraph
@@ -284,20 +287,15 @@ function playParagraph(paragraph: string) {
       utterance.pitch = 1.0
 
       utterance.onstart = () => {
-        isPlaying.value = true
-        isPaused.value = false
+        paragraphStates.value[paragraph] = { isPlaying: true, isPaused: false }
       }
 
       utterance.onend = () => {
-        isPlaying.value = false
-        isPaused.value = false
-        currentParagraph.value = null
+        paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
       }
 
       utterance.onerror = () => {
-        isPlaying.value = false
-        isPaused.value = false
-        currentParagraph.value = null
+        paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
       }
 
       speechSynthesis.speak(utterance)
@@ -306,21 +304,18 @@ function playParagraph(paragraph: string) {
 }
 
 // 暫停朗誦
-function pauseParagraph() {
+function pauseParagraph(paragraph: string) {
   if ('speechSynthesis' in window) {
     speechSynthesis.pause()
-    isPlaying.value = false
-    isPaused.value = true
+    paragraphStates.value[paragraph] = { isPlaying: false, isPaused: true }
   }
 }
 
 // 停止朗誦
-function stopParagraph() {
+function stopParagraph(paragraph: string) {
   if ('speechSynthesis' in window) {
     speechSynthesis.cancel()
-    isPlaying.value = false
-    isPaused.value = false
-    currentParagraph.value = null
+    paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
   }
 }
 
