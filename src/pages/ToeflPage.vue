@@ -58,7 +58,7 @@
       <div class="vocab-grid">
         <div
           v-for="word in paginatedWords"
-          :key="word.id"
+          :key="word.word"
           class="vocab-card-wrapper"
         >
           <q-card class="vocab-card h-full">
@@ -66,6 +66,12 @@
               <div class="row items-start justify-between q-mb-sm">
                 <div class="text-h5 text-primary font-weight-bold">
                   {{ word.word }}
+                  <q-badge color="primary" class="q-ml-sm" outline>
+                    x{{ word.count }}
+                    <q-tooltip class="bg-dark-card text-dark-text">
+                      出現於：{{ word.dates.join('、') }}
+                    </q-tooltip>
+                  </q-badge>
                 </div>
                 <q-btn
                   flat
@@ -116,7 +122,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { Word, DayContent } from '../types/vocabulary'
+import type { DayContent } from '../types/vocabulary'
 
 const loading = ref(true)
 const error = ref('')
@@ -129,17 +135,43 @@ const itemsPerPageOptions = [
   { label: 'all', value: 0 }
 ]
 
-// 計算所有單字
-const allWords = computed(() => {
-  const words: Word[] = []
+// 彙整（去重）單字，計數與日期，並依出現次數排序
+interface AggregatedWord {
+  word: string
+  partOfSpeech: string
+  definition: string
+  example: string
+  count: number
+  dates: string[]
+}
+
+const aggregatedWords = computed<AggregatedWord[]>(() => {
+  const map = new Map<string, AggregatedWord>()
   toeflData.value.forEach(day => {
-    words.push(...day.words)
+    day.words.forEach(w => {
+      const key = w.word.toLowerCase()
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, {
+          word: w.word,
+          partOfSpeech: w.partOfSpeech,
+          definition: w.definition,
+          example: w.example,
+          count: 1,
+          dates: [day.date]
+        })
+      } else {
+        existing.count += 1
+        if (!existing.dates.includes(day.date)) existing.dates.push(day.date)
+      }
+    })
   })
-  return words
+
+  return Array.from(map.values()).sort((a, b) => b.count - a.count)
 })
 
-// 計算總單字數
-const totalWords = computed(() => allWords.value.length)
+// 計算總單字數（以去重後為準）
+const totalWords = computed(() => aggregatedWords.value.length)
 
 // 計算總頁數
 const totalPages = computed(() => {
@@ -147,12 +179,12 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(totalWords.value / pageSize))
 })
 
-// 計算當前頁的單字
+// 計算當前頁的單字（以去重後為準）
 const paginatedWords = computed(() => {
   const pageSize = itemsPerPage.value === 0 ? totalWords.value : itemsPerPage.value
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
-  return allWords.value.slice(start, end)
+  return aggregatedWords.value.slice(start, end)
 })
 
 // 載入單字資料

@@ -254,10 +254,13 @@ function playPronunciation(word: string) {
     // 停止當前播放
     speechSynthesis.cancel()
 
-    const utterance = new SpeechSynthesisUtterance(word)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.9
-    speechSynthesis.speak(utterance)
+    // 讓瀏覽器有時間清空佇列，避免跳針
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(word)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.9
+      speechSynthesis.speak(utterance)
+    }, 50)
   }
 }
 
@@ -341,28 +344,32 @@ function playParagraph(paragraph: string) {
         .replace(/\n/g, ' ')   // 移除換行符
         .replace(/"/g, '')      // 移除雙引號
         .replace(/'/g, '')      // 移除單引號
+        .replace(/`/g, '')      // 移除反引號（inline highlight 符號）
         .replace(/\[.*?\]/g, '') // 移除方括號內容
         .replace(/\s+/g, ' ')   // 合併多個空格為單個空格
         .trim()                 // 移除首尾空格
 
-      const utterance = new SpeechSynthesisUtterance(cleanParagraph)
-      utterance.lang = 'en-US'
-      utterance.rate = 0.9
-      utterance.pitch = 1.0
+      // 延遲極短時間後再開始，避免部分瀏覽器在 cancel 後立即 speak 產生跳針
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(cleanParagraph)
+        utterance.lang = 'en-US'
+        utterance.rate = 0.9
+        utterance.pitch = 1.0
 
-      utterance.onstart = () => {
-        paragraphStates.value[paragraph] = { isPlaying: true, isPaused: false }
-      }
+        utterance.onstart = () => {
+          paragraphStates.value[paragraph] = { isPlaying: true, isPaused: false }
+        }
 
-      utterance.onend = () => {
-        paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
-      }
+        utterance.onend = () => {
+          paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
+        }
 
-      utterance.onerror = () => {
-        paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
-      }
+        utterance.onerror = () => {
+          paragraphStates.value[paragraph] = { isPlaying: false, isPaused: false }
+        }
 
-      speechSynthesis.speak(utterance)
+        speechSynthesis.speak(utterance)
+      }, 50)
     }
   }
 }
@@ -387,7 +394,7 @@ function stopParagraph(paragraph: string) {
 function formatArticleContent(content: string): string {
   const formatted = content
     // 1. 處理被 `` 包起來的字（用黃色標記）
-    .replace(/`([^`]+)`/g, '<span style="background-color: #ffeb3b; color: #000; padding: 2px 4px; border-radius: 3px;">$1</span>')
+    .replace(/`([^`]+)`/g, '<span class="inline-hl">$1</span>')
     // 4. 基本 Markdown 格式
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -438,5 +445,22 @@ onUnmounted(() => {
 
 .vocab-card:hover {
   transform: translateY(-2px)
+}
+
+:deep(.inline-hl) {
+  background-color: #e9d8a6;
+  color: #000;
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin: 0 1px;
+  display: inline;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  box-shadow: 0 0 0 2px #2d3748;
+}
+
+/* 提高文章段落的行高，避免相鄰行的高亮視覺重疊 */
+.text-body1.text-white {
+  line-height: 1.8;
 }
 </style>

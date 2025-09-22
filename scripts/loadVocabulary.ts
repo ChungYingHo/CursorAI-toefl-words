@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'fs'
-import { join, basename } from 'path'
-import type { DayVocabulary, Word, DayContent, Article } from '../src/types/vocabulary'
+import { join  } from 'path'
+import type { Word, DayContent, Article } from '../src/types/vocabulary'
 
 // 解析 markdown 表格行
 function parseMarkdownTableRow(line: string): Word | null {
@@ -33,6 +33,7 @@ function parseMarkdownTableRow(line: string): Word | null {
 }
 
 // 解析 frontmatter
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseFrontmatter(content: string): { frontmatter: any, content: string } | null {
   const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
   const match = content.match(frontmatterRegex)
@@ -49,6 +50,7 @@ function parseFrontmatter(content: string): { frontmatter: any, content: string 
   }
 
   // 解析 YAML frontmatter
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frontmatter: any = {}
   frontmatterText.split('\n').forEach(line => {
     const colonIndex = line.indexOf(':')
@@ -105,7 +107,6 @@ function parseMarkdownFile(filePath: string): DayContent | null {
     const parsed = parseFrontmatter(content)
 
     if (!parsed) {
-      console.warn(`檔案 ${filePath} 沒有有效的 frontmatter`)
       return null
     }
 
@@ -166,7 +167,7 @@ function parseMarkdownFile(filePath: string): DayContent | null {
       words
     }
   } catch (error) {
-    console.error(`解析檔案 ${filePath} 時發生錯誤:`, error)
+    console.error(`解析檔案 ${filePath} 時發生錯誤:`, error) // eslint-disable-line no-console
     return null
   }
 }
@@ -176,7 +177,6 @@ function loadVocabularyFromFolder(folderPath: string): DayContent[] {
   const vocabulary: DayContent[] = []
 
   if (!existsSync(folderPath)) {
-    console.warn(`資料夾 ${folderPath} 不存在`)
     return vocabulary
   }
 
@@ -200,17 +200,8 @@ function loadVocabularyFromFolder(folderPath: string): DayContent[] {
 
 // 主函數
 function main() {
-  console.log('開始載入單字資料...')
-
-  // 載入托福單字
-  console.log('載入托福單字...')
   const toeflVocabulary = loadVocabularyFromFolder('./toefl')
-  console.log(`載入了 ${toeflVocabulary.length} 天的托福單字`)
-
-  // 載入一般單字
-  console.log('載入一般單字...')
   const dailyVocabulary = loadVocabularyFromFolder('./daily')
-  console.log(`載入了 ${dailyVocabulary.length} 天的一般單字`)
 
   // 確保 public 資料夾存在
   if (!existsSync('./public')) {
@@ -218,20 +209,8 @@ function main() {
   }
 
   // 寫入 JSON 檔案
-  console.log('寫入 JSON 檔案...')
   writeFileSync('./public/toefl.json', JSON.stringify(toeflVocabulary, null, 2))
   writeFileSync('./public/daily.json', JSON.stringify(dailyVocabulary, null, 2))
-
-  console.log('單字資料載入完成!')
-  console.log(`托福單字: ${toeflVocabulary.length} 天`)
-  console.log(`一般單字: ${dailyVocabulary.length} 天`)
-
-  // 顯示統計資訊
-  const totalToeflWords = toeflVocabulary.reduce((sum, day) => sum + day.words.length, 0)
-  const totalDailyWords = dailyVocabulary.reduce((sum, day) => sum + day.words.length, 0)
-
-  console.log(`總計托福單字: ${totalToeflWords} 個`)
-  console.log(`總計一般單字: ${totalDailyWords} 個`)
 }
 
 // 執行主函數
