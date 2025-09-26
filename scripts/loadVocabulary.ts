@@ -12,23 +12,55 @@ function parseMarkdownTableRow(line: string): Word | null {
     return null
   }
 
-  const [word, partOfSpeech, definition, example] = columns
-
   // 檢查是否為表格標題行或分隔行
-  if (!word || word.includes('---') || word === '單字' || word === '詞性' || word === '中文' || word === '例句') {
+  const firstCol = columns[0]
+  if (!firstCol || firstCol.includes('---') || firstCol === '單字' || firstCol === '詞性' || firstCol === '中文' || firstCol === '例句' || firstCol === '音標') {
     return null
   }
 
-  if (!word || word.length === 0) {
+  if (!firstCol || firstCol.length === 0) {
     return null
   }
 
-  return {
-    id: 0, // 稍後會重新編號
-    word: word.trim(),
-    partOfSpeech: partOfSpeech ? partOfSpeech.trim() : '',
-    definition: definition ? definition.trim() : '',
-    example: example ? example.trim() : ''
+  // 移除末尾的空欄位
+  while (columns.length > 0) {
+    const lastColumn = columns[columns.length - 1]
+    if (!lastColumn || lastColumn.trim() === '') {
+      columns.pop()
+    } else {
+      break
+    }
+  }
+
+  // 優先檢查是否為 4 欄格式（單字|詞性|中文|例句）
+  if (columns.length === 4) {
+    const [word, partOfSpeech, definition, example] = columns
+    if (!word) return null
+    return {
+      id: 0, // 稍後會重新編號
+      word: word.trim(),
+      partOfSpeech: partOfSpeech ? partOfSpeech.trim() : '',
+      definition: definition ? definition.trim() : '',
+      example: example ? example.trim() : ''
+    }
+  } else if (columns.length === 5) {
+    // 5欄格式（單字|音標|詞性|中文|例句）
+    const [word, phonetic, partOfSpeech, definition, example] = columns
+    if (!word) return null
+    const result: Word = {
+      id: 0, // 稍後會重新編號
+      word: word.trim(),
+      partOfSpeech: partOfSpeech ? partOfSpeech.trim() : '',
+      definition: definition ? definition.trim() : '',
+      example: example ? example.trim() : ''
+    }
+    if (phonetic && phonetic.trim()) {
+      result.phonetic = phonetic.trim()
+    }
+    return result
+  } else {
+    // 不支援的格式
+    return null
   }
 }
 

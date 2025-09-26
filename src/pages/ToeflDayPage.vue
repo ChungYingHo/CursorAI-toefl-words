@@ -164,15 +164,15 @@
                 </q-btn>
               </div>
 
-              <div class="text-subtitle2 text-dark-text-secondary q-mb-sm">
-                {{ word.partOfSpeech }}
+              <div v-if="word.phonetic" class="text-caption text-dark-text-secondary q-mb-sm">
+                {{ word.phonetic }}
               </div>
 
-              <div class="text-body1 text-dark-text q-mb-sm flex-grow">
-                {{ word.definition }}
+              <div class="text-body1 text-dark-text q-mb-sm">
+                {{ word.definition }} {{ word.partOfSpeech }}
               </div>
 
-              <div v-if="word.example" class="text-body1 text-dark-text-secondary mt-auto">
+              <div v-if="word.example" class="text-body1 text-dark-text-secondary">
                 {{ word.example }}
               </div>
             </q-card-section>

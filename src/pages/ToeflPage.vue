@@ -87,15 +87,15 @@
                 </q-btn>
               </div>
 
-              <div class="text-subtitle2 text-dark-text-secondary q-mb-sm">
-                {{ word.partOfSpeech }}
+              <div v-if="word.phonetic" class="text-caption text-dark-text-secondary q-mb-sm">
+                {{ word.phonetic }}
               </div>
 
-              <div class="text-body1 text-dark-text q-mb-sm flex-grow">
-                {{ word.definition }}
+              <div class="text-body1 text-dark-text q-mb-sm">
+                {{ word.definition }} {{ word.partOfSpeech }}
               </div>
 
-              <div v-if="word.example" class="text-body1 text-dark-text-secondary mt-auto">
+              <div v-if="word.example" class="text-body1 text-dark-text-secondary">
                 {{ word.example }}
               </div>
             </q-card-section>
@@ -141,6 +141,7 @@ interface AggregatedWord {
   partOfSpeech: string
   definition: string
   example: string
+  phonetic?: string
   count: number
   dates: string[]
 }
@@ -152,14 +153,18 @@ const aggregatedWords = computed<AggregatedWord[]>(() => {
       const key = w.word.toLowerCase()
       const existing = map.get(key)
       if (!existing) {
-        map.set(key, {
+        const aggregated: AggregatedWord = {
           word: w.word,
           partOfSpeech: w.partOfSpeech,
           definition: w.definition,
           example: w.example,
           count: 1,
           dates: [day.date]
-        })
+        }
+        if (w.phonetic) {
+          aggregated.phonetic = w.phonetic
+        }
+        map.set(key, aggregated)
       } else {
         existing.count += 1
         if (!existing.dates.includes(day.date)) existing.dates.push(day.date)

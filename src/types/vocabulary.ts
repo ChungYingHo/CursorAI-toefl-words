@@ -6,6 +6,7 @@ export interface Word {
   partOfSpeech: string
   definition: string
   example: string
+  phonetic?: string
 }
 
 export interface DayVocabulary {
