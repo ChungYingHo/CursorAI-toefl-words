@@ -72,6 +72,18 @@
                       出現於：{{ word.dates.join('、') }}
                     </q-tooltip>
                   </q-badge>
+                  <q-btn
+                    v-if="word.count > 1"
+                    flat
+                    dense
+                    round
+                    color="primary"
+                    icon="add"
+                    class="q-ml-xs"
+                    @click="openOccurrences(word.word)"
+                  >
+                    <q-tooltip class="bg-dark-card text-dark-text">查看出現明細</q-tooltip>
+                  </q-btn>
                 </div>
                 <q-btn
                   flat
@@ -117,6 +129,49 @@
         />
       </div>
     </div>
+
+    <!-- 出現明細 Dialog -->
+    <q-dialog v-model="occurrenceDialog">
+      <q-card class="bg-grey-9 text-white dialog-card">
+        <q-card-section>
+          <div class="row items-center no-wrap">
+            <div class="text-h6 text-white">單字出現明細 - {{ dialogWord }}</div>
+            <q-btn
+              flat
+              round
+              icon="volume_up"
+              size="sm"
+              color="white"
+              class="q-ml-sm"
+              @click="playPronunciation(dialogWord)"
+            >
+              <q-tooltip class="bg-grey-9 text-white">播放發音</q-tooltip>
+            </q-btn>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div v-if="currentOccurrences.length">
+            <div
+              v-for="item in currentOccurrences"
+              :key="item.date + '-' + item.index"
+              class="q-py-sm q-mb-sm"
+            >
+              <div class="text-subtitle2 text-white">{{ item.date }} <span v-if="item.title" class="text-grey-4">- {{ item.title }}</span></div>
+              <div v-if="item.phonetic" class="text-caption text-grey-4 q-mt-xs">{{ item.phonetic }}</div>
+              <div class="text-body1 text-white q-mt-xs">{{ item.definition }} {{ item.partOfSpeech }}</div>
+              <div v-if="item.example" class="text-body2 text-grey-4 q-mt-xs">{{ item.example }}</div>
+              <q-separator class="q-mt-sm" />
+            </div>
+          </div>
+          <div v-else class="text-body1 text-grey-4">無明細</div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="關閉" color="white" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -144,6 +199,60 @@ interface AggregatedWord {
   phonetic?: string
   count: number
   dates: string[]
+}
+
+interface WordOccurrenceItem {
+  index: number
+  date: string
+  title?: string | null | undefined
+  partOfSpeech: string
+  definition: string
+  example: string
+  phonetic?: string | undefined
+}
+
+const occurrenceDialog = ref(false)
+const dialogWord = ref('')
+const dialogWordLower = computed(() => dialogWord.value.toLowerCase())
+
+const occurrencesByWord = computed<Record<string, WordOccurrenceItem[]>>(() => {
+  const map: Record<string, WordOccurrenceItem[]> = {}
+  toeflData.value.forEach(day => {
+    day.words.forEach((w, idx) => {
+      const key = w.word.toLowerCase()
+      if (!map[key]) map[key] = []
+      map[key].push({
+        index: idx,
+        date: day.date,
+        title: day.article?.title ?? null,
+        partOfSpeech: w.partOfSpeech,
+        definition: w.definition,
+        example: w.example,
+        phonetic: w.phonetic
+      })
+    })
+  })
+  Object.keys(map).forEach(k => {
+    const list = map[k] ?? []
+    map[k] = list.sort((a, b) => {
+      const ta = new Date(a.date.replace(/\//g, '-')).getTime()
+      const tb = new Date(b.date.replace(/\//g, '-')).getTime()
+      if (tb !== ta) return tb - ta
+      return a.index - b.index
+    })
+  })
+  return map
+})
+
+const currentOccurrences = computed<WordOccurrenceItem[]>(() => {
+  const dict = occurrencesByWord.value
+  const key = dialogWordLower.value
+  return (dict && key && dict[key]) ? dict[key] : []
+})
+
+function openOccurrences(word: string) {
+  dialogWord.value = word
+  occurrenceDialog.value = true
 }
 
 const aggregatedWords = computed<AggregatedWord[]>(() => {
@@ -250,5 +359,17 @@ onMounted(() => {
 
 .vocab-card:hover {
   transform: translateY(-2px)
+}
+
+/* 出現明細 Dialog RWD 寬度 */
+.dialog-card {
+  width: 92vw;
+  max-width: 900px;
+}
+
+@media (min-width: 900px) {
+  .dialog-card {
+    width: 700px;
+  }
 }
 </style>
