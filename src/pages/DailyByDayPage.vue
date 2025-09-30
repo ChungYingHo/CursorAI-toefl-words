@@ -112,7 +112,12 @@ async function loadVocabularyData() {
     if (!response.ok) {
       throw new Error('載入一般單字資料失敗')
     }
-    dailyData.value = await response.json()
+    dailyData.value = (await response.json()).sort((a: DayContent, b: DayContent) => {
+      // 日期格式為 yyyy/MM/dd，轉為可比較的時間戳
+      const aTime = new Date(a.date.replace(/\//g, '-')).getTime()
+      const bTime = new Date(b.date.replace(/\//g, '-')).getTime()
+      return bTime - aTime // 新到舊
+    })
   } catch (err) {
     error.value = err instanceof Error ? err.message : '載入資料時發生錯誤'
   } finally {
