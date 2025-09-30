@@ -25,11 +25,43 @@
       />
     </div>
 
-    <!-- 天數卡片列表 -->
+    <!-- 篩選與天數卡片列表 -->
     <div v-else>
+      <!-- 篩選列 -->
+      <div class="row justify-center q-mb-md q-px-md">
+        <div class="pagination-controls">
+          <div class="row items-center q-gutter-sm">
+            <span class="text-dark-text-secondary">現在顯示：</span>
+            <q-select
+              v-model="selectedYearMonth"
+              :options="yearMonthOptions"
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              dense
+              outlined
+              class="items-per-page-select"
+              input-class="text-white"
+              popup-content-class="bg-dark-card text-white"
+              options-selected-class="text-white"
+              options-dense
+              use-input
+              fill-input
+              hide-selected
+              behavior="menu"
+              input-debounce="150"
+              v-model:input-value="yearMonthInput"
+              new-value-mode="add-unique"
+              @new-value="onNewYearMonth"
+              @filter="filterYearMonth"
+            />
+          </div>
+        </div>
+      </div>
       <div class="vocab-grid">
         <div
-          v-for="dayData in toeflData"
+          v-for="dayData in filteredDays"
           :key="dayData.date"
           class="vocab-card-wrapper"
         >
@@ -79,7 +111,7 @@
       </div>
 
       <!-- 空狀態 -->
-      <div v-if="toeflData.length === 0" class="text-center q-py-xl">
+      <div v-if="filteredDays.length === 0" class="text-center q-py-xl">
         <q-icon name="book" size="80px" color="grey-6" />
         <div class="text-h6 text-dark-text-secondary q-mt-md">
           暫無托福單字資料
@@ -93,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { DayContent } from '../types/vocabulary'
 
@@ -101,6 +133,62 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const toeflData = ref<DayContent[]>([])
+const selectedYearMonth = ref<string>('all')
+
+type YearMonthOption = { label: string; value: string }
+const yearMonthAllOptions = computed<YearMonthOption[]>(() => {
+  const ymSet = new Set<string>()
+  toeflData.value.forEach(d => ymSet.add(d.date.slice(0, 7)))
+  const sorted = Array.from(ymSet).sort((a, b) => {
+    const aT = new Date(a.replace(/\//g, '-') + '-01').getTime()
+    const bT = new Date(b.replace(/\//g, '-') + '-01').getTime()
+    return bT - aT
+  })
+  return [{ label: 'All', value: 'all' }, ...sorted.map(v => ({ label: v, value: v }))]
+})
+const yearMonthOptions = ref<YearMonthOption[]>([])
+const yearMonthInput = ref('')
+
+watch(yearMonthAllOptions, (opts) => {
+  yearMonthOptions.value = opts
+}, { immediate: true })
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterYearMonth(val: string, update: any) {
+  update(() => {
+    if (!val) {
+      yearMonthOptions.value = yearMonthAllOptions.value
+      return
+    }
+    const needle = val.toLowerCase()
+    yearMonthOptions.value = yearMonthAllOptions.value.filter(o => o.label.toLowerCase().includes(needle))
+  })
+}
+
+// 使用 Enter/Tab 時套用第一個匹配或 All，不新增自由文字
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onNewYearMonth(val: string, done: any) {
+  // 標記參數為已使用以通過 linter
+  void done
+  const needle = (val || '').toLowerCase()
+  const first = yearMonthOptions.value.find(o => o.label.toLowerCase().includes(needle))
+  if (first) {
+    selectedYearMonth.value = first.value
+    done(first, 'add-unique')
+  } else if (needle === 'all') {
+    const all = { label: 'All', value: 'all' }
+    selectedYearMonth.value = 'all'
+    done(all, 'add-unique')
+  } else {
+    done()
+  }
+  yearMonthInput.value = ''
+}
+
+const filteredDays = computed(() => {
+  if (selectedYearMonth.value === 'all') return toeflData.value
+  return toeflData.value.filter(d => d.date.startsWith(selectedYearMonth.value + '/'))
+})
 
 // 載入單字資料
 async function loadVocabularyData() {
