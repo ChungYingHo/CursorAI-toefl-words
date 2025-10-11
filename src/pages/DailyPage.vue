@@ -61,12 +61,12 @@
           :key="word.word"
           class="vocab-card-wrapper"
         >
-          <q-card class="vocab-card h-full">
+          <q-card class="vocab-card h-full" :class="getCardColorClass(word.count)">
             <q-card-section class="q-pa-md d-flex flex-column h-full">
               <div class="row items-start justify-between q-mb-sm">
-                <div class="text-h5 text-primary font-weight-bold">
+                <div class="text-h5 font-weight-bold" :class="getWordColorClass(word.count)">
                   {{ word.word }}
-                  <q-badge color="accent" class="q-ml-sm" outline>
+                  <q-badge class="q-ml-sm" outline :class="getBadgeColorClass(word.count)">
                     x{{ word.count }}
                     <q-tooltip class="bg-dark-card text-dark-text">
                       出現於：{{ word.dates.join('、') }}
@@ -78,8 +78,8 @@
                     round
                     icon="add"
                     size="sm"
-                    color="primary"
                     class="q-ml-xs"
+                    :class="getPlusButtonClass(word.count)"
                     @click="showWordOccurrences(word)"
                   >
                     <q-tooltip class="bg-grey-9 text-white">
@@ -153,16 +153,17 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <div v-for="occurrence in currentOccurrences" :key="`${occurrence.date}-${occurrence.title}`" class="q-mb-md">
+          <div v-for="(occurrence, index) in currentOccurrences" :key="`${occurrence.date}-${occurrence.title}`" class="q-mb-md">
             <div class="row items-center q-mb-xs">
               <q-badge color="primary" class="q-mr-sm">{{ occurrence.date }}</q-badge>
               <span class="text-white font-weight-bold">{{ occurrence.title || '一般單字' }}</span>
             </div>
-            <div class="text-dark-text-secondary q-mb-xs">
+            <div class="text-grey-4 q-mb-xs">
               {{ occurrence.phonetic }} {{ occurrence.partOfSpeech }}
             </div>
             <div class="text-white q-mb-xs">{{ occurrence.definition }}</div>
-            <div class="text-dark-text-secondary">{{ occurrence.example }}</div>
+            <div class="text-grey-4">{{ occurrence.example }}</div>
+            <q-separator v-if="index < currentOccurrences.length - 1" class="q-mt-md" />
           </div>
         </q-card-section>
 
@@ -337,6 +338,63 @@ function showWordOccurrences(word: AggregatedWord) {
   occurrenceDialog.value = true
 }
 
+// 根據出現次數返回卡片顏色類別
+function getCardColorClass(count: number): string {
+  // 出現次數映射到 10 種顏色，次數越多顏色越深
+  if (count === 1) return 'card-count-1'
+  if (count === 2) return 'card-count-2'
+  if (count === 3) return 'card-count-3'
+  if (count === 4) return 'card-count-4'
+  if (count === 5) return 'card-count-5'
+  if (count === 6) return 'card-count-6'
+  if (count === 7) return 'card-count-7'
+  if (count === 8) return 'card-count-8'
+  if (count === 9) return 'card-count-9'
+  return 'card-count-10' // 10 次以上
+}
+
+// 根據出現次數返回加號按鈕顏色類別
+function getPlusButtonClass(count: number): string {
+  // 藍色→黃色→紅色漸進
+  if (count === 2) return 'plus-btn-2'
+  if (count === 3) return 'plus-btn-3'
+  if (count === 4) return 'plus-btn-4'
+  if (count === 5) return 'plus-btn-5'
+  if (count === 6) return 'plus-btn-6'
+  if (count === 7) return 'plus-btn-7'
+  if (count === 8) return 'plus-btn-8'
+  if (count === 9) return 'plus-btn-9'
+  return 'plus-btn-10' // 10 次以上
+}
+
+// 根據出現次數返回 badge 顏色類別
+function getBadgeColorClass(count: number): string {
+  if (count === 1) return 'badge-count-1'
+  if (count === 2) return 'badge-count-2'
+  if (count === 3) return 'badge-count-3'
+  if (count === 4) return 'badge-count-4'
+  if (count === 5) return 'badge-count-5'
+  if (count === 6) return 'badge-count-6'
+  if (count === 7) return 'badge-count-7'
+  if (count === 8) return 'badge-count-8'
+  if (count === 9) return 'badge-count-9'
+  return 'badge-count-10' // 10 次以上
+}
+
+// 根據出現次數返回單字顏色類別
+function getWordColorClass(count: number): string {
+  if (count === 1) return 'word-count-1'
+  if (count === 2) return 'word-count-2'
+  if (count === 3) return 'word-count-3'
+  if (count === 4) return 'word-count-4'
+  if (count === 5) return 'word-count-5'
+  if (count === 6) return 'word-count-6'
+  if (count === 7) return 'word-count-7'
+  if (count === 8) return 'word-count-8'
+  if (count === 9) return 'word-count-9'
+  return 'word-count-10' // 10 次以上
+}
+
 onMounted(() => {
   void loadVocabularyData()
 })
@@ -348,11 +406,182 @@ onMounted(() => {
 }
 
 .vocab-card {
-  transition: transform 0.2s ease-in-out
+  transition: transform 0.2s ease-in-out, background-color 0.3s ease;
 }
 
 .vocab-card:hover {
   transform: translateY(-2px)
+}
+
+/* 出現次數對應的卡片背景顏色 - 深色藍色系漸進 */
+.card-count-1 {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+.card-count-2 {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c4f7c 100%);
+}
+
+.card-count-3 {
+  background: linear-gradient(135deg, #1a4d7a 0%, #1e5a8f 100%);
+}
+
+.card-count-4 {
+  background: linear-gradient(135deg, #1565a0 0%, #1976d2 100%);
+}
+
+.card-count-5 {
+  background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
+}
+
+.card-count-6 {
+  background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
+}
+
+.card-count-7 {
+  background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
+}
+
+.card-count-8 {
+  background: linear-gradient(135deg, #0a3d91 0%, #0d47a1 100%);
+}
+
+.card-count-9 {
+  background: linear-gradient(135deg, #073575 0%, #0a3d91 100%);
+}
+
+.card-count-10 {
+  background: linear-gradient(135deg, #052a5c 0%, #073575 100%);
+  box-shadow: 0 4px 12px rgba(5, 42, 92, 0.5);
+}
+
+/* 加號按鈕顏色 - 藍色→黃色→紅色漸進（3次開始黃） */
+.plus-btn-2 {
+  color: #42a5f5 !important;
+}
+
+.plus-btn-3 {
+  color: #fdd835 !important;
+}
+
+.plus-btn-4 {
+  color: #ffeb3b !important;
+}
+
+.plus-btn-5 {
+  color: #ffca28 !important;
+}
+
+.plus-btn-6 {
+  color: #ffb300 !important;
+}
+
+.plus-btn-7 {
+  color: #ffa726 !important;
+}
+
+.plus-btn-8 {
+  color: #ff7043 !important;
+}
+
+.plus-btn-9 {
+  color: #f4511e !important;
+}
+
+.plus-btn-10 {
+  color: #d32f2f !important;
+}
+
+/* Badge 顏色 - 與加號按鈕同色 */
+.badge-count-1 {
+  color: #90caf9 !important;
+  border-color: #90caf9 !important;
+}
+
+.badge-count-2 {
+  color: #42a5f5 !important;
+  border-color: #42a5f5 !important;
+}
+
+.badge-count-3 {
+  color: #fdd835 !important;
+  border-color: #fdd835 !important;
+}
+
+.badge-count-4 {
+  color: #ffeb3b !important;
+  border-color: #ffeb3b !important;
+}
+
+.badge-count-5 {
+  color: #ffca28 !important;
+  border-color: #ffca28 !important;
+}
+
+.badge-count-6 {
+  color: #ffb300 !important;
+  border-color: #ffb300 !important;
+}
+
+.badge-count-7 {
+  color: #ffa726 !important;
+  border-color: #ffa726 !important;
+}
+
+.badge-count-8 {
+  color: #ff7043 !important;
+  border-color: #ff7043 !important;
+}
+
+.badge-count-9 {
+  color: #f4511e !important;
+  border-color: #f4511e !important;
+}
+
+.badge-count-10 {
+  color: #d32f2f !important;
+  border-color: #d32f2f !important;
+}
+
+/* 單字顏色 - 與 badge 和加號按鈕同色 */
+.word-count-1 {
+  color: #90caf9 !important;
+}
+
+.word-count-2 {
+  color: #42a5f5 !important;
+}
+
+.word-count-3 {
+  color: #fdd835 !important;
+}
+
+.word-count-4 {
+  color: #ffeb3b !important;
+}
+
+.word-count-5 {
+  color: #ffca28 !important;
+}
+
+.word-count-6 {
+  color: #ffb300 !important;
+}
+
+.word-count-7 {
+  color: #ffa726 !important;
+}
+
+.word-count-8 {
+  color: #ff7043 !important;
+}
+
+.word-count-9 {
+  color: #f4511e !important;
+}
+
+.word-count-10 {
+  color: #d32f2f !important;
 }
 
 .dialog-card {
