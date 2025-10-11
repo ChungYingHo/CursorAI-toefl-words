@@ -27,11 +27,29 @@
 
     <!-- 單字列表 -->
     <div v-else>
-      <!-- 分頁控制 -->
+      <!-- 分頁控制與篩選 -->
       <div class="row justify-center q-mb-md q-px-md">
         <div class="pagination-controls">
           <div class="pagination-info">
-            <span class="text-dark-text-secondary">共 {{ totalWords }} 個單字</span>
+            <span class="text-dark-text-secondary">共 {{ filteredWords.length }} 個單字</span>
+          </div>
+          <div class="pagination-selector">
+            <span class="text-dark-text-secondary">出現次數</span>
+            <q-select
+              v-model="selectedCountFilter"
+              :options="countFilterOptions"
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              dense
+              outlined
+              class="count-filter-select text-dark"
+              popup-content-class="bg-dark-card text-dark"
+              options-selected-class="text-dark"
+              options-dense
+              @update:model-value="onCountFilterChange"
+            />
           </div>
           <div class="pagination-selector">
             <span class="text-dark-text-secondary">每頁顯示</span>
@@ -184,6 +202,7 @@ const error = ref('')
 const dailyData = ref<DayContent[]>([])
 const currentPage = ref(1)
 const itemsPerPage = ref(30)
+const selectedCountFilter = ref<number | string>('all')
 
 // 對話框相關
 const occurrenceDialog = ref(false)
@@ -192,6 +211,16 @@ const dialogWord = ref('')
 const itemsPerPageOptions = [
   { label: '30', value: 30 },
   { label: 'all', value: 0 }
+]
+
+const countFilterOptions = [
+  { label: '全部', value: 'all' },
+  { label: '1次', value: 1 },
+  { label: '2次', value: 2 },
+  { label: '3次', value: 3 },
+  { label: '4次', value: 4 },
+  { label: '5次', value: 5 },
+  { label: '6次以上', value: '6+' }
 ]
 
 // 彙整（去重）單字，計數與日期，並依出現次數排序
@@ -234,6 +263,17 @@ const aggregatedWords = computed<AggregatedWord[]>(() => {
   return Array.from(map.values()).sort((a, b) => b.count - a.count)
 })
 
+// 根據出現次數篩選單字
+const filteredWords = computed(() => {
+  if (selectedCountFilter.value === 'all') {
+    return aggregatedWords.value
+  }
+  if (selectedCountFilter.value === '6+') {
+    return aggregatedWords.value.filter(word => word.count >= 6)
+  }
+  return aggregatedWords.value.filter(word => word.count === selectedCountFilter.value)
+})
+
 // 建立每個單字的出現明細
 const occurrencesByWord = computed(() => {
   const map = new Map<string, WordOccurrenceItem[]>()
@@ -274,8 +314,8 @@ const currentOccurrences = computed(() => {
   return occurrencesByWord.value.get(dialogWordLower) || []
 })
 
-// 計算總單字數（以去重後為準）
-const totalWords = computed(() => aggregatedWords.value.length)
+// 計算總單字數（以篩選後為準）
+const totalWords = computed(() => filteredWords.value.length)
 
 // 計算總頁數
 const totalPages = computed(() => {
@@ -283,12 +323,12 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(totalWords.value / pageSize))
 })
 
-// 計算當前頁的單字（以去重後為準）
+// 計算當前頁的單字（以篩選後為準）
 const paginatedWords = computed(() => {
   const pageSize = itemsPerPage.value === 0 ? totalWords.value : itemsPerPage.value
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
-  return aggregatedWords.value.slice(start, end)
+  return filteredWords.value.slice(start, end)
 })
 
 // 載入單字資料
@@ -329,6 +369,10 @@ function onPageChange(page: number) {
 }
 
 function onItemsPerPageChange() {
+  currentPage.value = 1
+}
+
+function onCountFilterChange() {
   currentPage.value = 1
 }
 
@@ -403,6 +447,10 @@ onMounted(() => {
 <style scoped>
 .items-per-page-select {
   min-width: 80px
+}
+
+.count-filter-select {
+  min-width: 100px
 }
 
 .vocab-card {
