@@ -72,6 +72,20 @@
                       出現於：{{ word.dates.join('、') }}
                     </q-tooltip>
                   </q-badge>
+                  <q-btn
+                    v-if="word.count > 1"
+                    flat
+                    round
+                    icon="add"
+                    size="sm"
+                    color="primary"
+                    class="q-ml-xs"
+                    @click="showWordOccurrences(word)"
+                  >
+                    <q-tooltip class="bg-grey-9 text-white">
+                      查看出現明細
+                    </q-tooltip>
+                  </q-btn>
                 </div>
                 <q-btn
                   flat
@@ -117,18 +131,62 @@
         />
       </div>
     </div>
+
+    <!-- 出現明細 Dialog -->
+    <q-dialog v-model="occurrenceDialog">
+      <q-card class="bg-grey-9 text-white dialog-card">
+        <q-card-section>
+          <div class="row items-center no-wrap">
+            <div class="text-h6 text-white">單字出現明細 - {{ dialogWord }}</div>
+            <q-btn
+              flat
+              round
+              icon="volume_up"
+              size="sm"
+              color="white"
+              class="q-ml-sm"
+              @click="playPronunciation(dialogWord)"
+            >
+              <q-tooltip class="bg-grey-9 text-white">播放發音</q-tooltip>
+            </q-btn>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div v-for="occurrence in currentOccurrences" :key="`${occurrence.date}-${occurrence.title}`" class="q-mb-md">
+            <div class="row items-center q-mb-xs">
+              <q-badge color="primary" class="q-mr-sm">{{ occurrence.date }}</q-badge>
+              <span class="text-white font-weight-bold">{{ occurrence.title || '一般單字' }}</span>
+            </div>
+            <div class="text-dark-text-secondary q-mb-xs">
+              {{ occurrence.phonetic }} {{ occurrence.partOfSpeech }}
+            </div>
+            <div class="text-white q-mb-xs">{{ occurrence.definition }}</div>
+            <div class="text-dark-text-secondary">{{ occurrence.example }}</div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat color="white" label="關閉" @click="occurrenceDialog = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { DayContent } from '../types/vocabulary'
+import type { DayContent, WordOccurrenceItem } from '../types/vocabulary'
 
 const loading = ref(true)
 const error = ref('')
 const dailyData = ref<DayContent[]>([])
 const currentPage = ref(1)
 const itemsPerPage = ref(30)
+
+// 對話框相關
+const occurrenceDialog = ref(false)
+const dialogWord = ref('')
 
 const itemsPerPageOptions = [
   { label: '30', value: 30 },
@@ -173,6 +231,46 @@ const aggregatedWords = computed<AggregatedWord[]>(() => {
   })
 
   return Array.from(map.values()).sort((a, b) => b.count - a.count)
+})
+
+// 建立每個單字的出現明細
+const occurrencesByWord = computed(() => {
+  const map = new Map<string, WordOccurrenceItem[]>()
+
+  dailyData.value.forEach(day => {
+    day.words.forEach(w => {
+      const key = w.word.toLowerCase()
+      const occurrence: WordOccurrenceItem = {
+        date: day.date,
+        title: day.article?.title || null,
+        partOfSpeech: w.partOfSpeech,
+        definition: w.definition,
+        example: w.example
+      }
+
+      if (w.phonetic) {
+        occurrence.phonetic = w.phonetic
+      }
+
+      if (!map.has(key)) {
+        map.set(key, [])
+      }
+      map.get(key)!.push(occurrence)
+    })
+  })
+
+  // 對每個單字的出現明細按日期排序（最新的在前）
+  map.forEach((occurrences) => {
+    occurrences.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  })
+
+  return map
+})
+
+// 當前對話框顯示的單字出現明細
+const currentOccurrences = computed(() => {
+  const dialogWordLower = dialogWord.value.toLowerCase()
+  return occurrencesByWord.value.get(dialogWordLower) || []
 })
 
 // 計算總單字數（以去重後為準）
@@ -233,6 +331,12 @@ function onItemsPerPageChange() {
   currentPage.value = 1
 }
 
+// 顯示單字出現明細
+function showWordOccurrences(word: AggregatedWord) {
+  dialogWord.value = word.word
+  occurrenceDialog.value = true
+}
+
 onMounted(() => {
   void loadVocabularyData()
 })
@@ -249,5 +353,16 @@ onMounted(() => {
 
 .vocab-card:hover {
   transform: translateY(-2px)
+}
+
+.dialog-card {
+  width: 92vw;
+  max-width: 700px;
+}
+
+@media (min-width: 1200px) {
+  .dialog-card {
+    max-width: 900px;
+  }
 }
 </style>

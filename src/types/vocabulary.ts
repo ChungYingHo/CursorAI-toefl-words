@@ -106,3 +106,13 @@ export type VocabularyType = 'toefl' | 'daily'
 
 // 測驗類型
 export type QuizType = 'quiz-toefl' | 'quiz-daily'
+
+// 單字出現明細型別
+export interface WordOccurrenceItem {
+  date: string
+  title: string | null
+  partOfSpeech: string
+  definition: string
+  example: string
+  phonetic?: string
+}
