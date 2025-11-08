@@ -40,6 +40,12 @@
               exact
             />
 
+            <q-route-tab
+              name="listening"
+              label="英聽練習"
+              to="/listening-practice"
+            />
+
             <q-tab name="reading" label="英文閱讓">
               <q-menu
                 class="bg-dark-card"
@@ -87,6 +93,16 @@
                   >
                     <q-item-section>
                       <q-item-label>一般單字</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable
+                    v-close-popup
+                    to="/listening-practice"
+                    class="text-dark"
+                  >
+                    <q-item-section>
+                      <q-item-label>英聽練習</q-item-label>
                     </q-item-section>
                   </q-item>
 
@@ -228,6 +244,20 @@
           </q-item-section>
         </q-item>
 
+        <q-item
+          clickable
+          to="/listening-practice"
+          class="text-white q-mb-sm"
+          active-class="text-primary"
+        >
+          <q-item-section avatar>
+            <q-icon name="headset" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>英聽練習</q-item-label>
+          </q-item-section>
+        </q-item>
+
         <q-separator class="q-my-md" color="grey-7" />
 
         <q-item-label header class="text-grey-4 q-mb-sm">測驗</q-item-label>
@@ -297,8 +327,13 @@ const activeTab = ref('home')
 watch(() => route.path, (newPath) => {
   if (newPath === '/') {
     activeTab.value = 'home'
-  } else if (newPath.startsWith('/toefl') || newPath.startsWith('/daily')) {
-    activeTab.value = 'vocabulary'
+  } else if (newPath.startsWith('/listening')) {
+    activeTab.value = 'listening'
+  } else if (
+    newPath.startsWith('/toefl') ||
+    newPath.startsWith('/daily')
+  ) {
+    activeTab.value = 'reading'
   } else if (newPath.startsWith('/quiz')) {
     activeTab.value = 'quiz'
   } else {

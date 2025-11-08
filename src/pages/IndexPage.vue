@@ -1,57 +1,59 @@
 <template>
   <q-page class="q-pa-md" style="min-height: 100vh;">
 
-    <!-- 隨機單字輪播區塊 -->
+    <!-- 隨機英聽推薦區塊 -->
     <div class="q-mb-lg">
       <div class="text-center q-mb-md">
-        <h2 class="text-h5 text-dark-text q-mb-sm font-weight-bold">每日推薦單字</h2>
-        <q-btn-toggle
-          v-model="selectedVocabularyType"
-          :options="vocabularyTypeOptions"
-          color="primary"
-          text-color="white"
-          toggle-color="white"
-          toggle-text-color="primary"
-          class="q-mb-md"
-          rounded
-        />
+        <h2 class="text-h5 text-dark-text q-mb-sm font-weight-bold">每日推薦英聽</h2>
       </div>
 
       <div class="row justify-center q-px-md">
         <div class="col-12 col-md-8 col-lg-6">
-          <q-card class="vocab-card q-pa-lg bg-dark-card">
-            <q-carousel
-              v-model="currentWordIndex"
-              animated
-              infinite
-              autoplay
-              :autoplay-interval="3000"
-              height="250px"
-              class="rounded-borders"
-              dark
-            >
-              <q-carousel-slide
-                v-for="(word, index) in randomWords"
-                :key="index"
-                :name="index"
-                class="column no-wrap flex-center"
-              >
-                <div class="text-center full-width">
-                  <div class="text-h4 text-primary q-mb-md font-weight-bold">
-                    {{ word.word }}
-                  </div>
-                  <div class="text-subtitle1 text-dark-text-secondary q-mb-md">
-                    {{ word.partOfSpeech }}
-                  </div>
-                  <div class="text-h6 text-dark-text q-mb-md">
-                    {{ word.definition }}
-                  </div>
-                  <div class="text-body1 text-dark-text-secondary">
-                    {{ word.example }}
-                  </div>
-                </div>
-              </q-carousel-slide>
-            </q-carousel>
+          <q-card class="vocab-card bg-dark-card q-pa-none featured-listening-card">
+            <div v-if="listeningLoading" class="text-center q-pa-xl">
+              <q-spinner-dots color="primary" size="40px" />
+              <div class="text-dark-text-secondary q-mt-sm">載入中...</div>
+            </div>
+
+            <div v-else-if="listeningError" class="text-center q-pa-xl text-negative">
+              {{ listeningError }}
+            </div>
+
+            <template v-else-if="currentListening">
+              <div class="featured-video-wrapper">
+                <iframe
+                  :src="currentListening.embedUrl"
+                  title="每日推薦英聽"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                />
+              </div>
+              <div class="q-pa-md" />
+              <q-separator dark />
+              <q-card-actions align="right" class="q-pa-md">
+                <q-btn
+                  flat
+                  color="primary"
+                  icon="open_in_new"
+                  label="在 YouTube 開啟"
+                  :href="currentListening.link"
+                  target="_blank"
+                  rel="noopener"
+                />
+                <q-btn
+                  flat
+                  color="secondary"
+                  icon="shuffle"
+                  label="換一部"
+                  @click="pickRandomListening"
+                />
+              </q-card-actions>
+            </template>
+
+            <div v-else class="text-center q-pa-xl text-dark-text-secondary">
+              目前沒有英聽資料可用。
+            </div>
           </q-card>
         </div>
       </div>
@@ -153,54 +155,194 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import type { Word, DayVocabulary } from '../types/vocabulary'
+import { computed, onMounted, ref } from 'vue'
 
-const selectedVocabularyType = ref<'toefl' | 'daily'>('toefl')
-const currentWordIndex = ref(0)
-const toeflData = ref<DayVocabulary[]>([])
-const dailyData = ref<DayVocabulary[]>([])
+interface ListeningItem {
+  date: string
+  topic: string
+  link: string
+  embedUrl: string
+}
 
-const vocabularyTypeOptions = [
-  { label: '托福單字', value: 'toefl' },
-  { label: '一般單字', value: 'daily' }
-]
+const listeningItems = ref<ListeningItem[]>([])
+const listeningLoading = ref(true)
+const listeningError = ref('')
+const currentListeningIndex = ref<number | null>(null)
 
-// 計算隨機單字
-const randomWords = computed(() => {
-  const data = selectedVocabularyType.value === 'toefl' ? toeflData.value : dailyData.value
-  const allWords: Word[] = []
-
-  data.forEach(day => {
-    allWords.push(...day.words)
-  })
-
-  // 隨機選取 5 個單字
-  const shuffled = allWords.sort(() => 0.5 - Math.random())
-  return shuffled.slice(0, 5)
+const currentListening = computed(() => {
+  if (currentListeningIndex.value === null) {
+    return null
+  }
+  return listeningItems.value[currentListeningIndex.value] ?? null
 })
 
-// 載入單字資料
-async function loadVocabularyData() {
+function parseListeningMarkdown(markdown: string): ListeningItem[] {
+  const lines = markdown
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('|') && !line.startsWith('| Date'))
+
+  const dataLines = lines.filter(line => !line.startsWith('|----------'))
+
+  const items: ListeningItem[] = []
+
+  dataLines.forEach(line => {
+    const columns = line
+      .split('|')
+      .map(col => col.trim())
+      .filter(Boolean)
+
+    if (columns.length < 3) {
+      return
+    }
+
+    const date = columns[0]
+    const topic = columns[1]
+    const link = columns[2]
+
+    if (!date || !topic || !link) {
+      return
+    }
+
+    items.push({
+      date,
+      topic,
+      link,
+      embedUrl: toEmbedUrl(link)
+    })
+  })
+
+  return items
+}
+
+function toEmbedUrl(url: string): string {
   try {
-    const [toeflResponse, dailyResponse] = await Promise.all([
-      fetch('/toefl.json'),
-      fetch('/daily.json')
-    ])
+    const parsed = new URL(url)
 
-    if (toeflResponse.ok) {
-      toeflData.value = await toeflResponse.json()
+    if (parsed.hostname.includes('youtu.be')) {
+      const videoId = parsed.pathname.replace('/', '')
+      const embed = new URL(`https://www.youtube.com/embed/${videoId}`)
+      const start = extractStartSeconds(parsed.searchParams)
+      if (start) {
+        embed.searchParams.set('start', start.toString())
+      }
+      embed.searchParams.set('rel', '0')
+      return embed.toString()
     }
 
-    if (dailyResponse.ok) {
-      dailyData.value = await dailyResponse.json()
+    if (parsed.hostname.includes('youtube.com')) {
+      if (parsed.pathname === '/watch') {
+        const videoId = parsed.searchParams.get('v')
+        if (videoId) {
+          const embed = new URL(`https://www.youtube.com/embed/${videoId}`)
+          const start = extractStartSeconds(parsed.searchParams)
+          if (start) {
+            embed.searchParams.set('start', start.toString())
+          }
+          embed.searchParams.set('rel', '0')
+          return embed.toString()
+        }
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        const embed = new URL(url)
+        embed.searchParams.set('rel', '0')
+        return embed.toString()
+      }
     }
+
+    return url
   } catch {
-    // 載入單字資料失敗
+    return url
   }
 }
 
-onMounted(() => {
-  void loadVocabularyData()
+function extractStartSeconds(params: URLSearchParams): number | null {
+  const start = params.get('start') || params.get('t')
+  if (!start) {
+    return null
+  }
+
+  if (/^\d+$/.test(start)) {
+    return Number(start)
+  }
+
+  const match = start.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/)
+  if (!match) {
+    return null
+  }
+
+  const hours = Number(match[1] || 0)
+  const minutes = Number(match[2] || 0)
+  const seconds = Number(match[3] || 0)
+
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds
+  return totalSeconds > 0 ? totalSeconds : null
+}
+
+function pickRandomListening() {
+  if (!listeningItems.value.length) {
+    currentListeningIndex.value = null
+    return
+  }
+
+  if (listeningItems.value.length === 1) {
+    currentListeningIndex.value = 0
+    return
+  }
+
+  let nextIndex = Math.floor(Math.random() * listeningItems.value.length)
+  if (nextIndex === currentListeningIndex.value) {
+    nextIndex = (nextIndex + 1) % listeningItems.value.length
+  }
+  currentListeningIndex.value = nextIndex
+}
+
+onMounted(async () => {
+  try {
+    const listeningMarkdownUrl = new URL('../../listening/listening.md', import.meta.url)
+    const response = await fetch(listeningMarkdownUrl.toString())
+    if (!response.ok) {
+      throw new Error('載入英聽資料失敗')
+    }
+    const markdown = await response.text()
+    const items = parseListeningMarkdown(markdown)
+
+    if (items.length === 0) {
+      listeningItems.value = []
+      currentListeningIndex.value = null
+    } else {
+      // 依日期排序（最新在前）
+      listeningItems.value = items.sort((a, b) => {
+        const aDate = new Date(a.date.replace(/\//g, '-')).getTime()
+        const bDate = new Date(b.date.replace(/\//g, '-')).getTime()
+        return bDate - aDate
+      })
+      pickRandomListening()
+    }
+  } catch (err) {
+    listeningError.value = err instanceof Error ? err.message : '載入英聽資料時發生錯誤'
+  } finally {
+    listeningLoading.value = false
+  }
 })
 </script>
+
+<style scoped>
+.featured-listening-card {
+  overflow: hidden;
+}
+
+.featured-video-wrapper {
+  position: relative;
+  padding-top: 56.25%;
+  background: #000;
+}
+
+.featured-video-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+</style>
