@@ -12,3 +12,8 @@
 | 2025/12/08 | Late nights: Bad for health? | https://youtu.be/LXrh2AJa8nU?si=bkJ4HtrQB9d-4W3o |
 | 2026/01/20 | What English phrases really mean | https://youtu.be/u5TITb4P2Mg?si=CFAow6UwWQOGFMAh |
 | 2026/01/21 | Don’t Waste Your Life | https://youtu.be/etcYBI7L1D8?si=ub2JvObAHDnJu2Kb |
+| 2026/02/02 | Stop Thinking Start Talking | https://youtu.be/odLSgNSKuIg?si=iEWTdemKcN3qZzt1 |
+| 2026/02/03 | Morning Routine To Improve Your English | https://youtu.be/03Ovoq4ZzyM?si=Kqi8PfDtCaAKmICD |
+| 2026/02/04 | Easy English Podcast for Conversation Practice B1 | https://youtu.be/OAS5Te8J-e4?si=z32fK5L9XkKRUfi3 |
+| 2026/02/05 | Talk About Your Feelings | https://youtu.be/rYuiOUPE7N8?si=q9waqK0HcvIOW-hg |
+| 2025/02/06 | Train Your Mouth To Speak English | https://youtu.be/QAHqzImyr4g?si=5C4xtGEk5Eoggqju |
